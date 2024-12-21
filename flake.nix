@@ -27,11 +27,11 @@
     flake-utils.lib.eachDefaultSystem (system: let
       gopkg = go-nixpkgs.legacyPackages.${system};
       go = gopkg.go_1_23;
-      sqlite = sqlite-nixpkgs.legacyPackages.${system}.sqlite;
+      pkgsMusl = go-nixpkgs.legacyPackages.${system}.pkgsMusl;
+      sqlite = pkgsMusl.sqlite;
       nodejs = nodejs-nixpkgs.legacyPackages.${system}.nodejs_22;
       shellcheck = shellcheck-nixpkgs.legacyPackages.${system}.shellcheck;
       mockgen = gopkg.mockgen;
-      pkgsMusl = go-nixpkgs.legacyPackages.${system}.pkgsMusl;
     in {
       devShells.default =
         go-nixpkgs.legacyPackages.${system}.mkShell.override
@@ -53,10 +53,12 @@
             shellcheck
             mockgen
             pkgsMusl.musl
+            pkgsMusl.gcc
           ];
           shellHook = ''
             export GOROOT="${go}/share/go"
             export CGO_ENABLED=1
+            export CC="${pkgsMusl.gcc}/bin/gcc"
 
             echo "shellcheck" "$(shellcheck --version | grep '^version:')"
             echo "node" "$(node --version)"
