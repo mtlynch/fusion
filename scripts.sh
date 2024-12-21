@@ -23,10 +23,8 @@ build_backend() {
 build_frontend() {
   echo "building frontend"
   mkdir -p ./build
-  ls -al # debug
   root=$(pwd)
   cd ./frontend
-  ls -al # debug
   npm i
   npm run build
   cd $root
