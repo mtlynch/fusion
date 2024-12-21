@@ -15,20 +15,30 @@ test_go() {
   go test ./...
 }
 
+build_backend() {
+  echo "building backend"
+  go build -o ./build/fusion ./cmd/server/*
+}
+
+build_frontend() {
+  echo "building frontend"
+  mkdir -p ./build
+  ls -al # debug
+  root=$(pwd)
+  cd ./frontend
+  ls -al # debug
+  npm i
+  npm run build
+  cd $root
+}
+
 build() {
   echo "testing"
   gen
   test_go
 
-  root=$(pwd)
-  mkdir -p ./build
-  echo "building frontend"
-  cd ./frontend
-  npm i
-  npm run build
-  cd $root
-  echo "building backend"
-  go build -o ./build/fusion ./cmd/server/*
+  build_frontend
+  build_backend
 }
 
 dev() {
@@ -45,6 +55,12 @@ case $1 in
   ;;
 "dev")
   dev
+  ;;
+"build-backend")
+  build_backend
+  ;;
+"build-frontend")
+  build_frontend
   ;;
 "build")
   build
