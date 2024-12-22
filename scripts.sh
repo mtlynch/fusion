@@ -17,7 +17,10 @@ test_go() {
 
 build_backend() {
   echo "building backend"
-  go build -o ./build/fusion ./cmd/server/*
+  go build \
+    -ldflags '-extldflags "-static"' \
+    -o ./build/fusion \
+    ./cmd/server/*
 }
 
 build_frontend() {
