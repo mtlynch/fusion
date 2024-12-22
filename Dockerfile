@@ -4,14 +4,14 @@ WORKDIR /src
 COPY .git .git/
 COPY frontend ./frontend
 COPY scripts.sh .
-RUN /bin/sh -x ./scripts.sh build-frontend
+RUN ./scripts.sh build-frontend
 
 # build backend
 FROM golang:1.23 as be
 WORKDIR /src
 COPY . ./
 COPY --from=fe /src/frontend/build ./frontend/build/
-RUN /bin/sh -x ./scripts.sh build-backend
+RUN ./scripts.sh build-backend
 
 # deploy
 FROM debian:12
