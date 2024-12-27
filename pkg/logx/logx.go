@@ -3,7 +3,6 @@ package logx
 import (
 	"context"
 
-	"github.com/0x2e/fusion/conf"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -12,7 +11,7 @@ var Logger = initLogger()
 
 func initLogger() *zap.SugaredLogger {
 	var logger *zap.Logger
-	if conf.Debug {
+	if false {
 		devConf := zap.NewDevelopmentConfig()
 		devConf.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 		logger = zap.Must(devConf.Build())
@@ -20,7 +19,6 @@ func initLogger() *zap.SugaredLogger {
 		prodConf := zap.NewProductionConfig()
 		prodConf.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 		logger = zap.Must(prodConf.Build())
-
 	}
 	return logger.Sugar()
 }

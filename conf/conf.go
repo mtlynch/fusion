@@ -10,13 +10,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
-const (
-	Debug = false
+const dotEnvFilename = ".env"
 
-	dotEnvFilename = ".env"
-)
-
-var Conf struct {
+type Conf struct {
+	Debug    bool
 	Host     string `env:"HOST" envDefault:"0.0.0.0"`
 	Port     int    `env:"PORT" envDefault:"8080"`
 	Password string `env:"PASSWORD"`
@@ -27,7 +24,7 @@ var Conf struct {
 	TLSKey       string `env:"TLS_KEY"`
 }
 
-func Load() {
+func Load() Conf {
 	if err := godotenv.Load(dotEnvFilename); err != nil {
 		if !os.IsNotExist(err) {
 			panic(err)
@@ -36,27 +33,31 @@ func Load() {
 	} else {
 		log.Printf("read configuration from %s", dotEnvFilename)
 	}
-	if err := env.Parse(&Conf); err != nil {
+	conf := Conf{
+		Debug: false,
+	}
+	if err := env.Parse(&conf); err != nil {
 		panic(err)
 	}
-	if err := validate(); err != nil {
+	if err := validate(conf); err != nil {
 		panic(err)
 	}
-	if Debug {
-		fmt.Println(Conf)
+	if conf.Debug {
+		fmt.Println(conf)
 	}
+	return conf
 }
 
-func validate() error {
-	if Conf.Password == "" {
+func validate(conf Conf) error {
+	if conf.Password == "" {
 		return errors.New("password is required")
 	}
 
-	if (Conf.TLSCert == "") != (Conf.TLSKey == "") {
+	if (conf.TLSCert == "") != (conf.TLSKey == "") {
 		return errors.New("missing TLS cert or key file")
 	}
-	if Conf.TLSCert != "" {
-		Conf.SecureCookie = true
+	if conf.TLSCert != "" {
+		conf.SecureCookie = true
 	}
 
 	return nil

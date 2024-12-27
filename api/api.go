@@ -23,11 +23,11 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-func Run() {
+func Run(c conf.Conf) {
 	r := echo.New()
 	apiLogger := logx.Logger.With("module", "api")
 
-	if conf.Debug {
+	if c.Debug {
 		r.Debug = true
 		r.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
 			if len(resBody) > 500 {
@@ -122,9 +122,9 @@ func Run() {
 	items.DELETE("/:id", itemAPIHandler.Delete)
 
 	var err error
-	addr := fmt.Sprintf("%s:%d", conf.Conf.Host, conf.Conf.Port)
-	if conf.Conf.TLSCert != "" {
-		err = r.StartTLS(addr, conf.Conf.TLSCert, conf.Conf.TLSKey)
+	addr := fmt.Sprintf("%s:%d", c.Host, c.Port)
+	if c.TLSCert != "" {
+		err = r.StartTLS(addr, c.TLSCert, c.TLSKey)
 	} else {
 		err = r.Start(addr)
 	}
