@@ -44,6 +44,10 @@ func (s Session) Check(c echo.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	// The server's password may have changed since the user created their
+	// session, so we have to verify that the client's password still matches the
+	// server's.
 	v, ok := sess.Values["password"]
 	if !ok {
 		return false, nil
