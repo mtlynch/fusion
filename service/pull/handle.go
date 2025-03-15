@@ -94,50 +94,6 @@ func DecideFeedUpdateAction(f *model.Feed, now time.Time) (FeedUpdateAction, *Fe
 	return ActionFetchUpdate, nil
 }
 
-type fetchResult struct {
-	FeedItems         []*model.Item
-	FeedUpdateTime    *time.Time
-	FeedPublishedTime *time.Time
-}
-
-func fetchAndParseFeed(ctx context.Context, f *model.Feed) (fetchResult, error) {
-	fetched, err := FetchFeed(ctx, f)
-	if err != nil {
-		return fetchResult{}, err
-	}
-	if fetched == nil || len(fetched.Items) == 0 {
-		return fetchResult{}, nil
-	}
-
-	items := make([]*model.Item, 0, len(fetched.Items))
-	for _, i := range fetched.Items {
-		unread := true
-		content := i.Content
-		if content == "" {
-			content = i.Description
-		}
-		guid := i.GUID
-		if guid == "" {
-			guid = i.Link
-		}
-		items = append(items, &model.Item{
-			Title:   &i.Title,
-			GUID:    &guid,
-			Link:    &i.Link,
-			Content: &content,
-			PubDate: i.PublishedParsed,
-			Unread:  &unread,
-			FeedID:  f.ID,
-		})
-	}
-
-	return fetchResult{
-		FeedItems:         items,
-		FeedUpdateTime:    fetched.UpdatedParsed,
-		FeedPublishedTime: fetched.PublishedParsed,
-	}, nil
-}
-
 type feedHTTPRequest func(ctx context.Context, link string, options *model.FeedRequestOptions) (*http.Response, error)
 
 // FeedClient retrieves a feed given a feed URL and parses the result.
@@ -172,4 +128,51 @@ func (c FeedClient) Fetch(ctx context.Context, feedURL string, options *model.Fe
 
 func FetchFeed(ctx context.Context, f *model.Feed) (*gofeed.Feed, error) {
 	return NewFeedClient(httpx.FusionRequest).Fetch(ctx, *f.Link, &f.FeedRequestOptions)
+}
+
+type fetchResult struct {
+	FeedItems         []*model.Item
+	FeedUpdateTime    *time.Time
+	FeedPublishedTime *time.Time
+}
+
+func fetchAndParseFeed(ctx context.Context, f *model.Feed) (fetchResult, error) {
+	fetched, err := FetchFeed(ctx, f)
+	if err != nil {
+		return fetchResult{}, err
+	}
+	if fetched == nil {
+		return fetchResult{}, nil
+	}
+	return fetchResult{
+		FeedItems:         goFeedItemsToFusionItems(fetched.Items, f.ID),
+		FeedUpdateTime:    fetched.UpdatedParsed,
+		FeedPublishedTime: fetched.PublishedParsed,
+	}, nil
+}
+
+func goFeedItemsToFusionItems(gfItems []*gofeed.Item, feedID uint) []*model.Item {
+	items := make([]*model.Item, 0, len(gfItems))
+	for _, i := range gfItems {
+		unread := true
+		content := i.Content
+		if content == "" {
+			content = i.Description
+		}
+		guid := i.GUID
+		if guid == "" {
+			guid = i.Link
+		}
+		items = append(items, &model.Item{
+			Title:   &i.Title,
+			GUID:    &guid,
+			Link:    &i.Link,
+			Content: &content,
+			PubDate: i.PublishedParsed,
+			Unread:  &unread,
+			FeedID:  feedID,
+		})
+	}
+
+	return items
 }
