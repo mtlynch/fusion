@@ -38,17 +38,20 @@ func (p *Puller) do(ctx context.Context, f *model.Feed, force bool) error {
 
 	fetchResult, err := fetchAndParseFeed(ctx, f)
 	if err != nil {
-		return p.feedRepo.Update(f.ID, &model.Feed{
+		dbErr := p.feedRepo.Update(f.ID, &model.Feed{
 			LastBuild: fetchResult.FeedPublishedTime,
 			Failure:   ptr.To(err.Error()),
 		})
+		if dbErr != nil {
+			logger.Errorf("failed to record feed fetch update in store: %v", dbErr)
+		}
+		return err
 	}
-
-	logger.Infof("fetched %d items", len(fetchResult.FeedItems))
 
 	isLatestBuild := f.LastBuild != nil && fetchResult.FeedUpdateTime != nil &&
 		fetchResult.FeedUpdateTime.Equal(*f.LastBuild)
 	if !isLatestBuild {
+		logger.Infof("fetched %d items", len(fetchResult.FeedItems))
 		if err := p.itemRepo.Insert(fetchResult.FeedItems); err != nil {
 			return err
 		}
