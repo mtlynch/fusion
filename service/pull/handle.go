@@ -36,45 +36,26 @@ func (p *Puller) do(ctx context.Context, f *model.Feed, force bool) error {
 		}
 	}
 
-	fetched, err := FetchFeed(ctx, f)
+	fetchResult, err := fetchAndParseFeed(ctx, f)
 	if err != nil {
-		p.feedRepo.Update(f.ID, &model.Feed{Failure: ptr.To(err.Error())})
-		return err
+		return p.feedRepo.Update(f.ID, &model.Feed{
+			LastBuild: fetchResult.FeedPublishedTime,
+			Failure:   ptr.To(err.Error()),
+		})
 	}
-	if fetched == nil {
-		return nil
-	}
-	isLatestBuild := f.LastBuild != nil && fetched.UpdatedParsed != nil &&
-		fetched.UpdatedParsed.Equal(*f.LastBuild)
-	if len(fetched.Items) != 0 && !isLatestBuild {
-		data := make([]*model.Item, 0, len(fetched.Items))
-		for _, i := range fetched.Items {
-			unread := true
-			content := i.Content
-			if content == "" {
-				content = i.Description
-			}
-			guid := i.GUID
-			if guid == "" {
-				guid = i.Link
-			}
-			data = append(data, &model.Item{
-				Title:   &i.Title,
-				GUID:    &guid,
-				Link:    &i.Link,
-				Content: &content,
-				PubDate: i.PublishedParsed,
-				Unread:  &unread,
-				FeedID:  f.ID,
-			})
-		}
-		if err := p.itemRepo.Insert(data); err != nil {
+
+	logger.Infof("fetched %d items", len(fetchResult.FeedItems))
+
+	isLatestBuild := f.LastBuild != nil && fetchResult.FeedUpdateTime != nil &&
+		fetchResult.FeedUpdateTime.Equal(*f.LastBuild)
+	if !isLatestBuild {
+		if err := p.itemRepo.Insert(fetchResult.FeedItems); err != nil {
 			return err
 		}
 	}
-	logger.Infof("fetched %d items", len(fetched.Items))
+
 	return p.feedRepo.Update(f.ID, &model.Feed{
-		LastBuild: fetched.PublishedParsed,
+		LastBuild: fetchResult.FeedPublishedTime,
 		Failure:   ptr.To(""),
 	})
 }
@@ -112,6 +93,50 @@ func DecideFeedUpdateAction(f *model.Feed, now time.Time) (FeedUpdateAction, *Fe
 		return ActionSkipUpdate, &SkipReasonTooSoon
 	}
 	return ActionFetchUpdate, nil
+}
+
+type fetchResult struct {
+	FeedItems         []*model.Item
+	FeedUpdateTime    *time.Time
+	FeedPublishedTime *time.Time
+}
+
+func fetchAndParseFeed(ctx context.Context, f *model.Feed) (fetchResult, error) {
+	fetched, err := FetchFeed(ctx, f)
+	if err != nil {
+		return fetchResult{}, err
+	}
+	if fetched == nil || len(fetched.Items) == 0 {
+		return fetchResult{}, nil
+	}
+
+	items := make([]*model.Item, 0, len(fetched.Items))
+	for _, i := range fetched.Items {
+		unread := true
+		content := i.Content
+		if content == "" {
+			content = i.Description
+		}
+		guid := i.GUID
+		if guid == "" {
+			guid = i.Link
+		}
+		items = append(items, &model.Item{
+			Title:   &i.Title,
+			GUID:    &guid,
+			Link:    &i.Link,
+			Content: &content,
+			PubDate: i.PublishedParsed,
+			Unread:  &unread,
+			FeedID:  f.ID,
+		})
+	}
+
+	return fetchResult{
+		FeedItems:         items,
+		FeedUpdateTime:    fetched.UpdatedParsed,
+		FeedPublishedTime: fetched.PublishedParsed,
+	}, nil
 }
 
 type feedHTTPRequest func(ctx context.Context, link string, options *model.FeedRequestOptions) (*http.Response, error)
