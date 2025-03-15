@@ -55,7 +55,7 @@ func (p *Puller) do(ctx context.Context, f *model.Feed, force bool) error {
 	}
 
 	return p.feedRepo.Update(f.ID, &model.Feed{
-		LastBuild: fetchResult.FeedPublishedTime,
+		LastBuild: fetchResult.FeedUpdateTime,
 		Failure:   ptr.To(""),
 	})
 }
