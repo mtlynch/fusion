@@ -10,6 +10,7 @@ import (
 	"github.com/0x2e/fusion/model"
 	"github.com/0x2e/fusion/pkg/httpx"
 	"github.com/0x2e/fusion/pkg/ptr"
+	"github.com/0x2e/fusion/service/pull/parse"
 
 	"github.com/mmcdole/gofeed"
 )
@@ -145,34 +146,8 @@ func fetchAndParseFeed(ctx context.Context, f *model.Feed) (fetchResult, error) 
 		return fetchResult{}, nil
 	}
 	return fetchResult{
-		FeedItems:         goFeedItemsToFusionItems(fetched.Items, f.ID),
+		FeedItems:         parse.GoFeedItems(fetched.Items, f.ID),
 		FeedUpdateTime:    fetched.UpdatedParsed,
 		FeedPublishedTime: fetched.PublishedParsed,
 	}, nil
-}
-
-func goFeedItemsToFusionItems(gfItems []*gofeed.Item, feedID uint) []*model.Item {
-	items := make([]*model.Item, 0, len(gfItems))
-	for _, i := range gfItems {
-		unread := true
-		content := i.Content
-		if content == "" {
-			content = i.Description
-		}
-		guid := i.GUID
-		if guid == "" {
-			guid = i.Link
-		}
-		items = append(items, &model.Item{
-			Title:   &i.Title,
-			GUID:    &guid,
-			Link:    &i.Link,
-			Content: &content,
-			PubDate: i.PublishedParsed,
-			Unread:  &unread,
-			FeedID:  feedID,
-		})
-	}
-
-	return items
 }
