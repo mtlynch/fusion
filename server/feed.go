@@ -123,18 +123,9 @@ func (f Feed) CheckValidity(ctx context.Context, req *ReqFeedCheckValidity) (*Re
 	validLinks := make([]ValidityItem, 0)
 
 	result, err := pull.ReadFeed(ctx, link, model.FeedRequestOptions{})
-	if err == nil && result.RequestError == nil && result.Items != nil && len(result.Items) > 0 {
-		// If we have items, we can assume the feed is valid
-		// We need to get the title from the first item's feed
-		var title string
-		if result.Items[0].Title != nil {
-			title = *result.Items[0].Title
-		} else {
-			title = link // Fallback to using the link as the title
-		}
-
+	if err == nil && result.RequestError == nil {
 		validLinks = append(validLinks, ValidityItem{
-			Title: &title,
+			Title: result.State.Name,
 			Link:  &req.Link,
 		})
 	} else {
