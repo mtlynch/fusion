@@ -14,10 +14,75 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
+// readFeed implements ReadFeedFn for SingleFeedPuller
+func readFeed(ctx context.Context, feedURL *string, options model.FeedRequestOptions) (FeedFetchResult, error) {
+	// Create a temporary feed object with the URL and options
+	tempFeed := &model.Feed{
+		Link:               feedURL,
+		FeedRequestOptions: options,
+	}
+
+	// Use the existing FetchFeed function
+	fetched, err := FetchFeed(ctx, tempFeed)
+	if err != nil {
+		// Return the error directly, let the caller handle it
+		return FeedFetchResult{
+			RequestError: err,
+		}, nil
+	}
+
+	if fetched == nil {
+		return FeedFetchResult{}, nil
+	}
+
+	// Convert the fetched items to model.Item objects
+	var items []*model.Item
+	if len(fetched.Items) > 0 {
+		// We need a feed ID for ParseGoFeedItems, but we don't have one here
+		// The feed ID will be set correctly when the items are saved
+		items = ParseGoFeedItems(fetched.Items, 0)
+	}
+
+	// Return the result
+	return FeedFetchResult{
+		State: &model.Feed{
+			LastBuild: fetched.UpdatedParsed,
+		},
+		Items:        items,
+		RequestError: nil,
+	}, nil
+}
+
+// updateFeed implements UpdateFeedFn for SingleFeedPuller
+func (p *Puller) updateFeed(feed *model.Feed, items []*model.Item, requestError error) error {
+	if requestError != nil {
+		return p.feedRepo.Update(feed.ID, &model.Feed{
+			Failure: ptr.To(requestError.Error()),
+		})
+	}
+
+	// If we have items and they need to be saved
+	if len(items) > 0 {
+		// Set the correct feed ID for all items
+		for _, item := range items {
+			item.FeedID = feed.ID
+		}
+
+		// Save the items
+		if err := p.itemRepo.Insert(items); err != nil {
+			return err
+		}
+	}
+
+	// Update the feed with the new LastBuild time and clear any failure
+	return p.feedRepo.Update(feed.ID, &model.Feed{
+		LastBuild: feed.LastBuild,
+		Failure:   ptr.To(""),
+	})
+}
+
 func (p *Puller) do(ctx context.Context, f *model.Feed, force bool) error {
 	logger := pullLogger.With("feed_id", f.ID, "feed_name", f.Name)
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
 
 	updateAction, skipReason := DecideFeedUpdateAction(f, time.Now())
 	if skipReason == &SkipReasonSuspended {
@@ -36,27 +101,13 @@ func (p *Puller) do(ctx context.Context, f *model.Feed, force bool) error {
 		}
 	}
 
-	fetched, err := FetchFeed(ctx, f)
+	err := NewSingleFeedPuller(readFeed, p.updateFeed).Pull(ctx, f)
 	if err != nil {
-		p.feedRepo.Update(f.ID, &model.Feed{Failure: ptr.To(err.Error())})
 		return err
 	}
-	if fetched == nil {
-		return nil
-	}
-	isLatestBuild := f.LastBuild != nil && fetched.UpdatedParsed != nil &&
-		fetched.UpdatedParsed.Equal(*f.LastBuild)
-	if len(fetched.Items) != 0 && !isLatestBuild {
-		data := ParseGoFeedItems(fetched.Items, f.ID)
-		if err := p.itemRepo.Insert(data); err != nil {
-			return err
-		}
-	}
-	logger.Infof("fetched %d items", len(fetched.Items))
-	return p.feedRepo.Update(f.ID, &model.Feed{
-		LastBuild: fetched.UpdatedParsed,
-		Failure:   ptr.To(""),
-	})
+
+	logger.Infof("fetched feed successfully")
+	return nil
 }
 
 // FeedUpdateAction represents the action to take when considering checking a
