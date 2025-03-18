@@ -122,7 +122,6 @@ func (f Feed) CheckValidity(ctx context.Context, req *ReqFeedCheckValidity) (*Re
 	link := req.Link
 	validLinks := make([]ValidityItem, 0)
 
-	// Use readFeed instead of FetchFeed
 	result, err := pull.ReadFeed(ctx, link, model.FeedRequestOptions{})
 	if err == nil && result.RequestError == nil && result.Items != nil && len(result.Items) > 0 {
 		// If we have items, we can assume the feed is valid

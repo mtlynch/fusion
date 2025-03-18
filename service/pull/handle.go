@@ -16,15 +16,10 @@ import (
 
 // ReadFeed implements ReadFeedFn for SingleFeedPuller and is exported for use by other packages
 func ReadFeed(ctx context.Context, feedURL string, options model.FeedRequestOptions) (FeedFetchResult, error) {
-	if feedURL == "" {
-		return FeedFetchResult{}, nil
-	}
-
-	fetched, err := NewFeedClient(httpx.FusionRequest).Fetch(ctx, feedURL, &options)
-	if err != nil {
-		// Return the error directly, let the caller handle it
+	fetched, reqErr := NewFeedClient(httpx.FusionRequest).Fetch(ctx, feedURL, &options)
+	if reqErr != nil {
 		return FeedFetchResult{
-			RequestError: err,
+			RequestError: reqErr,
 		}, nil
 	}
 
