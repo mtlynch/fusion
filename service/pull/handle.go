@@ -2,19 +2,14 @@ package pull
 
 import (
 	"context"
-	"fmt"
-	"io"
-	"net/http"
 	"time"
 
 	"github.com/0x2e/fusion/model"
 	"github.com/0x2e/fusion/pkg/httpx"
 	"github.com/0x2e/fusion/pkg/ptr"
-
-	"github.com/mmcdole/gofeed"
 )
 
-// ReadFeed implements ReadFeedFn for SingleFeedPuller and is exported for use by other packages
+// ReadFeed implements ReadFeedFn for SingleFeedPuller and is exported for use by other packages.
 func ReadFeed(ctx context.Context, feedURL string, options model.FeedRequestOptions) (FeedFetchResult, error) {
 	fetched, reqErr := NewFeedClient(httpx.FusionRequest).Fetch(ctx, feedURL, &options)
 	if reqErr != nil {
@@ -23,28 +18,16 @@ func ReadFeed(ctx context.Context, feedURL string, options model.FeedRequestOpti
 		}, nil
 	}
 
-	// We successfully retrieved the feed and parsed the result, but it was empty.
-	if fetched == nil {
-		return FeedFetchResult{}, nil
-	}
-
-	// Convert the fetched items to model.Item objects
-	var items []*model.Item
-	if len(fetched.Items) > 0 {
-		items = ParseGoFeedItems(fetched.Items)
-	}
-
-	// Return the result
 	return FeedFetchResult{
 		State: &model.Feed{
 			LastBuild: fetched.UpdatedParsed,
 		},
-		Items:        items,
+		Items:        ParseGoFeedItems(fetched.Items),
 		RequestError: nil,
 	}, nil
 }
 
-// updateFeed implements UpdateFeedFn for SingleFeedPuller
+// updateFeed implements UpdateFeedFn for SingleFeedPuller.
 func (p *Puller) updateFeed(feed *model.Feed, items []*model.Item, requestError error) error {
 	if requestError != nil {
 		return p.feedRepo.Update(feed.ID, &model.Feed{
@@ -52,20 +35,18 @@ func (p *Puller) updateFeed(feed *model.Feed, items []*model.Item, requestError 
 		})
 	}
 
-	// If we have items and they need to be saved
 	if len(items) > 0 {
-		// Set the correct feed ID for all items
+		// Set the correct feed ID for all items.
 		for _, item := range items {
 			item.FeedID = feed.ID
 		}
 
-		// Save the items
 		if err := p.itemRepo.Insert(items); err != nil {
 			return err
 		}
 	}
 
-	// Update the feed with the new LastBuild time and clear any failure
+	// Update the feed with the new LastBuild time and clear any failure.
 	return p.feedRepo.Update(feed.ID, &model.Feed{
 		LastBuild: feed.LastBuild,
 		Failure:   ptr.To(""),
@@ -134,36 +115,4 @@ func DecideFeedUpdateAction(f *model.Feed, now time.Time) (FeedUpdateAction, *Fe
 		return ActionSkipUpdate, &SkipReasonTooSoon
 	}
 	return ActionFetchUpdate, nil
-}
-
-type feedHTTPRequest func(ctx context.Context, link string, options *model.FeedRequestOptions) (*http.Response, error)
-
-// FeedClient retrieves a feed given a feed URL and parses the result.
-type FeedClient struct {
-	httpRequestFn feedHTTPRequest
-}
-
-func NewFeedClient(httpRequestFn feedHTTPRequest) FeedClient {
-	return FeedClient{
-		httpRequestFn: httpRequestFn,
-	}
-}
-
-func (c FeedClient) Fetch(ctx context.Context, feedURL string, options *model.FeedRequestOptions) (*gofeed.Feed, error) {
-	resp, err := c.httpRequestFn(ctx, feedURL, options)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("got status code %d", resp.StatusCode)
-	}
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return gofeed.NewParser().ParseString(string(data))
 }
