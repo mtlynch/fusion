@@ -13,9 +13,9 @@ type FeedFetchResult struct {
 	RequestError error
 }
 
-// ReadFeedFn is responsible for reading a feed from an HTTP server and
+// ReadFeedItemsFn is responsible for reading a feed from an HTTP server and
 // converting the result to fusion-native data types.
-type ReadFeedFn func(ctx context.Context, feedURL string, options model.FeedRequestOptions) (FeedFetchResult, error)
+type ReadFeedItemsFn func(ctx context.Context, feedURL string, options model.FeedRequestOptions) (FeedFetchResult, error)
 
 // UpdateFeedFn is responsible for saving the result of a feed fetch to a data
 // store. If the fetch failed, it records that in the data store. If the fetch
@@ -24,12 +24,12 @@ type ReadFeedFn func(ctx context.Context, feedURL string, options model.FeedRequ
 type UpdateFeedFn func(feed *model.Feed, items []*model.Item, RequestError error) error
 
 type SingleFeedPuller struct {
-	readFeed   ReadFeedFn
+	readFeed   ReadFeedItemsFn
 	updateFeed UpdateFeedFn
 }
 
-// NewSingleFeedPuller creates a new SingleFeedPuller with the given ReadFeedFn and UpdateFeedFn.
-func NewSingleFeedPuller(readFeed ReadFeedFn, updateFeed UpdateFeedFn) SingleFeedPuller {
+// NewSingleFeedPuller creates a new SingleFeedPuller with the given ReadFeedItemsFn and UpdateFeedFn.
+func NewSingleFeedPuller(readFeed ReadFeedItemsFn, updateFeed UpdateFeedFn) SingleFeedPuller {
 	return SingleFeedPuller{
 		readFeed:   readFeed,
 		updateFeed: updateFeed,

@@ -14,7 +14,7 @@ import (
 	"github.com/0x2e/fusion/service/pull"
 )
 
-// mockFeedReader is a mock implementation of ReadFeedFn
+// mockFeedReader is a mock implementation of ReadFeedItemsFn
 type mockFeedReader struct {
 	result        pull.FeedFetchResult
 	err           error

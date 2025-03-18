@@ -9,8 +9,8 @@ import (
 	"github.com/0x2e/fusion/pkg/ptr"
 )
 
-// ReadFeed implements ReadFeedFn for SingleFeedPuller and is exported for use by other packages.
-func ReadFeed(ctx context.Context, feedURL string, options model.FeedRequestOptions) (FeedFetchResult, error) {
+// ReadFeedItems implements ReadFeedItemsFn for SingleFeedPuller and is exported for use by other packages.
+func ReadFeedItems(ctx context.Context, feedURL string, options model.FeedRequestOptions) (FeedFetchResult, error) {
 	fetched, reqErr := NewFeedClient(httpx.FusionRequest).Fetch(ctx, feedURL, &options)
 	if reqErr != nil {
 		return FeedFetchResult{
@@ -71,7 +71,7 @@ func (p *Puller) do(ctx context.Context, f *model.Feed, force bool) error {
 		}
 	}
 
-	err := NewSingleFeedPuller(ReadFeed, p.updateFeed).Pull(ctx, f)
+	err := NewSingleFeedPuller(ReadFeedItems, p.updateFeed).Pull(ctx, f)
 	if err != nil {
 		return err
 	}
