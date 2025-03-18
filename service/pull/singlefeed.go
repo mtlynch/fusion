@@ -8,7 +8,7 @@ import (
 )
 
 type FeedFetchResult struct {
-	State        *model.Feed
+	LastBuild    *time.Time
 	Items        []*model.Item
 	RequestError error
 }
@@ -52,5 +52,5 @@ func (p SingleFeedPuller) Pull(ctx context.Context, feed *model.Feed) error {
 		return err
 	}
 
-	return p.updateFeed(fetchResult.State, fetchResult.Items, fetchResult.RequestError)
+	return p.updateFeed(feed, fetchResult.Items, fetchResult.RequestError)
 }

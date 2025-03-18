@@ -78,11 +78,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				},
 			},
 			readFeedResult: pull.FeedFetchResult{
-				State: &model.Feed{
-					ID:   42,
-					Name: ptr.To("Test Feed"),
-					Link: ptr.To("https://example.com/feed.xml"),
-				},
+				LastBuild: ptr.To(time.Now()),
 				Items: []*model.Item{
 					{
 						Title:   ptr.To("Test Item 1"),
@@ -125,11 +121,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
 			readFeedResult: pull.FeedFetchResult{
-				State: &model.Feed{
-					ID:   42,
-					Name: ptr.To("Test Feed"),
-					Link: ptr.To("https://example.com/feed.xml"),
-				},
+				LastBuild: ptr.To(time.Now()),
 				Items: []*model.Item{
 					{
 						Title:   ptr.To("Test Item 1"),
@@ -154,11 +146,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
 			readFeedResult: pull.FeedFetchResult{
-				State: &model.Feed{
-					ID:   42,
-					Name: ptr.To("Test Feed"),
-					Link: ptr.To("https://example.com/feed.xml"),
-				},
+				LastBuild:    ptr.To(time.Now()),
 				Items:        nil,
 				RequestError: errors.New("HTTP 404"),
 			},
@@ -221,7 +209,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			// Verify UpdateFeed call behavior
 			if tt.shouldCallUpdate {
 				assert.True(t, mockUpdate.called, "UpdateFeed should be called")
-				assert.Equal(t, tt.readFeedResult.State, mockUpdate.lastFeed)
+				assert.Equal(t, tt.feed, mockUpdate.lastFeed)
 				assert.Equal(t, tt.readFeedResult.Items, mockUpdate.lastItems)
 				assert.Equal(t, tt.readFeedResult.RequestError, mockUpdate.lastRequestError)
 			} else {

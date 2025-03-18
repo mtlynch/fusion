@@ -19,10 +19,7 @@ func ReadFeed(ctx context.Context, feedURL string, options model.FeedRequestOpti
 	}
 
 	return FeedFetchResult{
-		State: &model.Feed{
-			Name:      &fetched.Title,
-			LastBuild: fetched.UpdatedParsed,
-		},
+		LastBuild:    fetched.UpdatedParsed,
 		Items:        ParseGoFeedItems(fetched.Items),
 		RequestError: nil,
 	}, nil
