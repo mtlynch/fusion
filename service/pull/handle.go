@@ -14,16 +14,15 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
-// readFeed implements ReadFeedFn for SingleFeedPuller
-func readFeed(ctx context.Context, feedURL *string, options model.FeedRequestOptions) (FeedFetchResult, error) {
-	// Create a temporary feed object with the URL and options
-	tempFeed := &model.Feed{
-		Link:               feedURL,
-		FeedRequestOptions: options,
+// ReadFeed implements ReadFeedFn for SingleFeedPuller and is exported for use by other packages
+func ReadFeed(ctx context.Context, feedURL *string, options model.FeedRequestOptions) (FeedFetchResult, error) {
+	if feedURL == nil {
+		return FeedFetchResult{}, nil
 	}
 
-	// Use the existing FetchFeed function
-	fetched, err := FetchFeed(ctx, tempFeed)
+	// Use NewFeedClient directly instead of FetchFeed
+	client := NewFeedClient(httpx.FusionRequest)
+	fetched, err := client.Fetch(ctx, *feedURL, &options)
 	if err != nil {
 		// Return the error directly, let the caller handle it
 		return FeedFetchResult{
@@ -101,7 +100,7 @@ func (p *Puller) do(ctx context.Context, f *model.Feed, force bool) error {
 		}
 	}
 
-	err := NewSingleFeedPuller(readFeed, p.updateFeed).Pull(ctx, f)
+	err := NewSingleFeedPuller(ReadFeed, p.updateFeed).Pull(ctx, f)
 	if err != nil {
 		return err
 	}
@@ -175,8 +174,4 @@ func (c FeedClient) Fetch(ctx context.Context, feedURL string, options *model.Fe
 	}
 
 	return gofeed.NewParser().ParseString(string(data))
-}
-
-func FetchFeed(ctx context.Context, f *model.Feed) (*gofeed.Feed, error) {
-	return NewFeedClient(httpx.FusionRequest).Fetch(ctx, *f.Link, &f.FeedRequestOptions)
 }

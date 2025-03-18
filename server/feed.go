@@ -121,10 +121,21 @@ func (f Feed) Create(ctx context.Context, req *ReqFeedCreate) error {
 func (f Feed) CheckValidity(ctx context.Context, req *ReqFeedCheckValidity) (*RespFeedCheckValidity, error) {
 	link := req.Link
 	validLinks := make([]ValidityItem, 0)
-	parsed, err := pull.FetchFeed(ctx, &model.Feed{Link: &link})
-	if err == nil && parsed != nil {
+
+	// Use readFeed instead of FetchFeed
+	result, err := pull.ReadFeed(ctx, &link, model.FeedRequestOptions{})
+	if err == nil && result.RequestError == nil && result.Items != nil && len(result.Items) > 0 {
+		// If we have items, we can assume the feed is valid
+		// We need to get the title from the first item's feed
+		var title string
+		if result.Items[0].Title != nil {
+			title = *result.Items[0].Title
+		} else {
+			title = link // Fallback to using the link as the title
+		}
+
 		validLinks = append(validLinks, ValidityItem{
-			Title: &parsed.Title,
+			Title: &title,
 			Link:  &req.Link,
 		})
 	} else {
