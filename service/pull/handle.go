@@ -31,9 +31,7 @@ func ReadFeed(ctx context.Context, feedURL string, options model.FeedRequestOpti
 	// Convert the fetched items to model.Item objects
 	var items []*model.Item
 	if len(fetched.Items) > 0 {
-		// We need a feed ID for ParseGoFeedItems, but we don't have one here
-		// The feed ID will be set correctly when the items are saved
-		items = ParseGoFeedItems(fetched.Items, 0)
+		items = ParseGoFeedItems(fetched.Items)
 	}
 
 	// Return the result
