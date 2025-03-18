@@ -18,13 +18,13 @@ import (
 type mockFeedReader struct {
 	result        pull.FeedFetchResult
 	err           error
-	lastFeedURL   *string
+	lastFeedURL   string
 	lastOptions   model.FeedRequestOptions
 	lastContext   context.Context
 	shouldTimeout bool
 }
 
-func (m *mockFeedReader) Read(ctx context.Context, feedURL *string, options model.FeedRequestOptions) (pull.FeedFetchResult, error) {
+func (m *mockFeedReader) Read(ctx context.Context, feedURL string, options model.FeedRequestOptions) (pull.FeedFetchResult, error) {
 	m.lastFeedURL = feedURL
 	m.lastOptions = options
 	m.lastContext = ctx
@@ -206,7 +206,11 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			}
 
 			// Verify ReadFeed was called with correct parameters
-			assert.Equal(t, tt.feed.Link, mockRead.lastFeedURL)
+			var expectedURL string
+			if tt.feed.Link != nil {
+				expectedURL = *tt.feed.Link
+			}
+			assert.Equal(t, expectedURL, mockRead.lastFeedURL)
 			assert.Equal(t, tt.feed.FeedRequestOptions, mockRead.lastOptions)
 
 			// Verify context has timeout set

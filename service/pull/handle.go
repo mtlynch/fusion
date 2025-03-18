@@ -15,14 +15,12 @@ import (
 )
 
 // ReadFeed implements ReadFeedFn for SingleFeedPuller and is exported for use by other packages
-func ReadFeed(ctx context.Context, feedURL *string, options model.FeedRequestOptions) (FeedFetchResult, error) {
-	if feedURL == nil {
+func ReadFeed(ctx context.Context, feedURL string, options model.FeedRequestOptions) (FeedFetchResult, error) {
+	if feedURL == "" {
 		return FeedFetchResult{}, nil
 	}
 
-	// Use NewFeedClient directly instead of FetchFeed
-	client := NewFeedClient(httpx.FusionRequest)
-	fetched, err := client.Fetch(ctx, *feedURL, &options)
+	fetched, err := NewFeedClient(httpx.FusionRequest).Fetch(ctx, feedURL, &options)
 	if err != nil {
 		// Return the error directly, let the caller handle it
 		return FeedFetchResult{
@@ -30,6 +28,7 @@ func ReadFeed(ctx context.Context, feedURL *string, options model.FeedRequestOpt
 		}, nil
 	}
 
+	// We successfully retrieved the feed and parsed the result, but it was empty.
 	if fetched == nil {
 		return FeedFetchResult{}, nil
 	}
