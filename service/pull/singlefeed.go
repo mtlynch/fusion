@@ -41,11 +41,9 @@ func (p SingleFeedPuller) Pull(ctx context.Context, feed *model.Feed) error {
 	// Note: We don't decide whether to fetch/skip here, as that's handled before
 	// this function gets called.
 
+	// We don't exit on error, as we want to record any error in the data store.
 	fetchResult, readErr := p.readFeed(ctx, *feed.Link, feed.FeedRequestOptions)
-	if readErr != nil {
-		return readErr
-	}
-	return p.updateFeedInStore(feed.ID, fetchResult.Items, fetchResult.LastBuild, nil)
+	return p.updateFeedInStore(feed.ID, fetchResult.Items, fetchResult.LastBuild, readErr)
 }
 
 // ReadFeedItems implements ReadFeedItemsFn for SingleFeedPuller and is exported for use by other packages.
