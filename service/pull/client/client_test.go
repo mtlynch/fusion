@@ -1,17 +1,58 @@
-package pull_test
+package client_test
 
 import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/0x2e/fusion/model"
-	"github.com/0x2e/fusion/service/pull"
+	"github.com/0x2e/fusion/service/pull/client"
 	"github.com/mmcdole/gofeed"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// mockReadCloser is a mock io.ReadCloser that can return either data or an error.
+type mockReadCloser struct {
+	result string
+	errMsg string
+	reader *strings.Reader
+}
+
+func (m *mockReadCloser) Read(p []byte) (n int, err error) {
+	if m.errMsg != "" {
+		return 0, errors.New(m.errMsg)
+	}
+	if m.reader == nil {
+		m.reader = strings.NewReader(m.result)
+	}
+	return m.reader.Read(p)
+}
+
+func (m *mockReadCloser) Close() error {
+	return nil
+}
+
+type mockHTTPClient struct {
+	resp        *http.Response
+	err         error
+	lastFeedURL string
+	lastOptions *model.FeedRequestOptions
+}
+
+func (m *mockHTTPClient) Get(ctx context.Context, link string, options *model.FeedRequestOptions) (*http.Response, error) {
+	// Store the last feed URL and options for assertions.
+	m.lastFeedURL = link
+	m.lastOptions = options
+
+	if m.err != nil {
+		return nil, m.err
+	}
+
+	return m.resp, nil
+}
 
 func TestFeedClientFetch(t *testing.T) {
 	for _, tt := range []struct {
@@ -191,7 +232,7 @@ func TestFeedClientFetch(t *testing.T) {
 				}(),
 			}
 
-			actualFeed, actualErr := pull.NewFeedClient(httpClient.Get).Fetch(context.Background(), tt.feedURL, tt.options)
+			actualFeed, actualErr := client.NewFeedClient(httpClient.Get).Fetch(context.Background(), tt.feedURL, tt.options)
 
 			if tt.expectedErrMsg != "" {
 				require.Error(t, actualErr)

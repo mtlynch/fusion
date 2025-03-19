@@ -1,4 +1,4 @@
-package pull_test
+package client_test
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/0x2e/fusion/model"
 	"github.com/0x2e/fusion/pkg/ptr"
-	"github.com/0x2e/fusion/service/pull"
+	"github.com/0x2e/fusion/service/pull/client"
 )
 
 func TestParseGoFeedItems(t *testing.T) {
@@ -203,7 +203,7 @@ func TestParseGoFeedItems(t *testing.T) {
 		},
 	} {
 		t.Run(tt.description, func(t *testing.T) {
-			result := pull.ParseGoFeedItems(tt.gfItems)
+			result := client.ParseGoFeedItems(tt.gfItems)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
