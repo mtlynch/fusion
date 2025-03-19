@@ -74,7 +74,6 @@ func TestSingleFeedPullerPull(t *testing.T) {
 		readFeedTimeout      bool
 		updateFeedInStoreErr error
 		expectedErr          string
-		shouldCallUpdate     bool
 	}{
 		{
 			description: "successful pull with no errors",
@@ -107,7 +106,6 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			},
 			readFeedErr:          nil,
 			updateFeedInStoreErr: nil,
-			shouldCallUpdate:     true,
 		},
 		{
 			description: "readFeed returns error",
@@ -116,10 +114,10 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
-			readFeedResult:   client.FeedFetchResult{},
-			readFeedErr:      errors.New("network error"),
-			expectedErr:      "network error",
-			shouldCallUpdate: false,
+			readFeedResult: client.FeedFetchResult{},
+			readFeedErr:    errors.New("network error"),
+			// No error expected from Pull, as it should just record the error in the data store
+			expectedErr: "",
 		},
 		{
 			description: "readFeed succeeds but updateFeedInStore fails",
@@ -143,7 +141,6 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			readFeedErr:          nil,
 			updateFeedInStoreErr: errors.New("database error"),
 			expectedErr:          "database error",
-			shouldCallUpdate:     true,
 		},
 		{
 			description: "readFeed returns request error",
@@ -156,10 +153,10 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				LastBuild: ptr.To(time.Now()),
 				Items:     nil,
 			},
-			requestErr:       errors.New("HTTP 404"),
-			readFeedErr:      nil,
-			expectedErr:      "HTTP 404",
-			shouldCallUpdate: false,
+			requestErr:  errors.New("HTTP 404"),
+			readFeedErr: nil,
+			// No error expected from Pull, as it should just record the error in the data store
+			expectedErr: "",
 		},
 		{
 			description: "context timeout during readFeed",
@@ -168,10 +165,10 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
-			readFeedResult:   client.FeedFetchResult{},
-			readFeedTimeout:  true,
-			expectedErr:      "context deadline exceeded",
-			shouldCallUpdate: false,
+			readFeedResult:  client.FeedFetchResult{},
+			readFeedTimeout: true,
+			// No error expected from Pull, as it should just record the error in the data store
+			expectedErr: "",
 		},
 	} {
 		t.Run(tt.description, func(t *testing.T) {
@@ -183,15 +180,9 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				shouldTimeout: tt.readFeedTimeout,
 			}
 
-			mockUpdate := &mockStoreUpdater{
-				err: tt.updateFeedInStoreErr,
-			}
+			mockUpdate := &mockStoreUpdater{err: tt.updateFeedInStoreErr}
 
-			// Create the puller with mocks
-			puller := pull.NewSingleFeedPuller(mockRead.Read, mockUpdate.Update)
-
-			// Execute the Pull method
-			err := puller.Pull(context.Background(), tt.feed)
+			err := pull.NewSingleFeedPuller(mockRead.Read, mockUpdate.Update).Pull(context.Background(), tt.feed)
 
 			// Verify error behavior
 			if tt.expectedErr != "" {
@@ -215,15 +206,21 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			assert.True(t, deadline.After(time.Now()), "Deadline should be in the future")
 
 			// Verify UpdateFeed call behavior
-			if tt.shouldCallUpdate {
-				assert.True(t, mockUpdate.called, "UpdateFeed should be called")
-				assert.Equal(t, tt.feed.ID, mockUpdate.lastFeedID)
-				assert.Equal(t, tt.readFeedResult.Items, mockUpdate.lastItems)
-				assert.Equal(t, tt.readFeedResult.LastBuild, mockUpdate.lastLastBuild)
-				assert.Equal(t, tt.requestErr, mockUpdate.lastRequestError)
+			assert.True(t, mockUpdate.called, "UpdateFeed should be called")
+			assert.Equal(t, tt.feed.ID, mockUpdate.lastFeedID)
+			assert.Equal(t, tt.readFeedResult.Items, mockUpdate.lastItems)
+			assert.Equal(t, tt.readFeedResult.LastBuild, mockUpdate.lastLastBuild)
+
+			// Check that the correct error was passed to Update
+			var expectedRequestError error
+			if tt.readFeedTimeout {
+				expectedRequestError = context.DeadlineExceeded
+			} else if tt.readFeedErr != nil {
+				expectedRequestError = tt.readFeedErr
 			} else {
-				assert.False(t, mockUpdate.called, "UpdateFeed should not be called")
+				expectedRequestError = tt.requestErr
 			}
+			assert.Equal(t, expectedRequestError, mockUpdate.lastRequestError)
 		})
 	}
 }
