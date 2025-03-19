@@ -119,7 +119,7 @@ func (f Feed) Create(ctx context.Context, req *ReqFeedCreate) error {
 }
 
 func (f Feed) CheckValidity(ctx context.Context, req *ReqFeedCheckValidity) (*RespFeedCheckValidity, error) {
-	if title, err := pull.ReadFeedTitle(ctx, &model.Feed{Link: &req.Link}); err == nil {
+	if title, err := pull.ReadFeedTitle(ctx, req.Link, model.FeedRequestOptions{}); err == nil {
 		return &RespFeedCheckValidity{
 			FeedLinks: []ValidityItem{
 				{
