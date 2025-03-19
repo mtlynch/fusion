@@ -17,6 +17,7 @@ import (
 // mockFeedReader is a mock implementation of ReadFeedItemsFn
 type mockFeedReader struct {
 	result        pull.FeedFetchResult
+	requestErr    error
 	err           error
 	lastFeedURL   string
 	lastOptions   model.FeedRequestOptions
@@ -35,7 +36,11 @@ func (m *mockFeedReader) Read(ctx context.Context, feedURL string, options model
 		return pull.FeedFetchResult{}, context.DeadlineExceeded
 	}
 
-	return m.result, m.err
+	if m.err != nil {
+		return pull.FeedFetchResult{}, m.err
+	}
+
+	return m.result, m.requestErr
 }
 
 // mockStoreUpdater is a mock implementation of UpdateFeedFn
@@ -61,6 +66,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 		description      string
 		feed             *model.Feed
 		readFeedResult   pull.FeedFetchResult
+		requestErr       error
 		readFeedErr      error
 		readFeedTimeout  bool
 		updateFeedErr    error
@@ -95,7 +101,6 @@ func TestSingleFeedPullerPull(t *testing.T) {
 						FeedID:  42,
 					},
 				},
-				RequestError: nil,
 			},
 			readFeedErr:      nil,
 			updateFeedErr:    nil,
@@ -131,7 +136,6 @@ func TestSingleFeedPullerPull(t *testing.T) {
 						FeedID:  42,
 					},
 				},
-				RequestError: nil,
 			},
 			readFeedErr:      nil,
 			updateFeedErr:    errors.New("database error"),
@@ -139,20 +143,20 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			shouldCallUpdate: true,
 		},
 		{
-			description: "readFeed returns request error which is passed to updateFeed",
+			description: "readFeed returns request error",
 			feed: &model.Feed{
 				ID:   42,
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
 			readFeedResult: pull.FeedFetchResult{
-				LastBuild:    ptr.To(time.Now()),
-				Items:        nil,
-				RequestError: errors.New("HTTP 404"),
+				LastBuild: ptr.To(time.Now()),
+				Items:     nil,
 			},
+			requestErr:       errors.New("HTTP 404"),
 			readFeedErr:      nil,
-			updateFeedErr:    nil,
-			shouldCallUpdate: true,
+			expectedErr:      "HTTP 404",
+			shouldCallUpdate: false,
 		},
 		{
 			description: "context timeout during readFeed",
@@ -171,6 +175,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			// Set up mocks
 			mockRead := &mockFeedReader{
 				result:        tt.readFeedResult,
+				requestErr:    tt.requestErr,
 				err:           tt.readFeedErr,
 				shouldTimeout: tt.readFeedTimeout,
 			}
@@ -211,7 +216,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				assert.True(t, mockUpdate.called, "UpdateFeed should be called")
 				assert.Equal(t, tt.feed, mockUpdate.lastFeed)
 				assert.Equal(t, tt.readFeedResult.Items, mockUpdate.lastItems)
-				assert.Equal(t, tt.readFeedResult.RequestError, mockUpdate.lastRequestError)
+				assert.Equal(t, tt.requestErr, mockUpdate.lastRequestError)
 			} else {
 				assert.False(t, mockUpdate.called, "UpdateFeed should not be called")
 			}

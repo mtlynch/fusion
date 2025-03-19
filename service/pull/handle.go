@@ -14,15 +14,12 @@ import (
 func ReadFeedItems(ctx context.Context, feedURL string, options model.FeedRequestOptions) (FeedFetchResult, error) {
 	fetchResult, reqErr := client.NewFeedClient(httpx.FusionRequest).FetchItems(ctx, feedURL, &options)
 	if reqErr != nil {
-		return FeedFetchResult{
-			RequestError: reqErr,
-		}, nil
+		return FeedFetchResult{}, reqErr
 	}
 
 	return FeedFetchResult{
-		LastBuild:    fetchResult.LastBuild,
-		Items:        fetchResult.Items,
-		RequestError: nil,
+		LastBuild: fetchResult.LastBuild,
+		Items:     fetchResult.Items,
 	}, nil
 }
 

@@ -8,20 +8,20 @@ import (
 )
 
 type FeedFetchResult struct {
-	LastBuild    *time.Time
-	Items        []*model.Item
-	RequestError error
+	LastBuild *time.Time
+	Items     []*model.Item
 }
 
 // ReadFeedItemsFn is responsible for reading a feed from an HTTP server and
-// converting the result to fusion-native data types.
+// converting the result to fusion-native data types. The error return value
+// is for request errors (e.g. HTTP errors).
 type ReadFeedItemsFn func(ctx context.Context, feedURL string, options model.FeedRequestOptions) (FeedFetchResult, error)
 
 // UpdateFeedFn is responsible for saving the result of a feed fetch to a data
 // store. If the fetch failed, it records that in the data store. If the fetch
 // succeeds, it stores the latest build time in the data store and adds any new
 // feed items to the datastore.
-type UpdateFeedFn func(feed *model.Feed, items []*model.Item, RequestError error) error
+type UpdateFeedFn func(feed *model.Feed, items []*model.Item, requestError error) error
 
 type SingleFeedPuller struct {
 	readFeed   ReadFeedItemsFn
@@ -49,8 +49,9 @@ func (p SingleFeedPuller) Pull(ctx context.Context, feed *model.Feed) error {
 	}
 	fetchResult, err := p.readFeed(ctx, feedURL, feed.FeedRequestOptions)
 	if err != nil {
+		// If there's an error from readFeed, pass it through
 		return err
 	}
 
-	return p.updateFeed(feed, fetchResult.Items, fetchResult.RequestError)
+	return p.updateFeed(feed, fetchResult.Items, nil)
 }
