@@ -59,6 +59,10 @@ func ReadFeedItems(ctx context.Context, feedURL string, options model.FeedReques
 	return client.NewFeedClient(httpx.FusionRequest).FetchItems(ctx, feedURL, &options)
 }
 
+func ReadFeedTitle(ctx context.Context, feedURL string, options model.FeedRequestOptions) (string, error) {
+	return client.NewFeedClient(httpx.FusionRequest).FetchTitle(ctx, feedURL, &options)
+}
+
 // updateFeed implements UpdateFeedFn for SingleFeedPuller.
 func (p *Puller) updateFeed(feed *model.Feed, items []*model.Item, requestError error) error {
 	if requestError != nil {
