@@ -44,7 +44,7 @@ func (m *mockFeedReader) Read(ctx context.Context, feedURL string, options model
 	return m.result, m.requestErr
 }
 
-// mockStoreUpdater is a mock implementation of UpdateFeedFn
+// mockStoreUpdater is a mock implementation of UpdateFeedInStoreFn
 type mockStoreUpdater struct {
 	err              error
 	lastFeedID       uint
@@ -66,15 +66,15 @@ func (m *mockStoreUpdater) Update(feedID uint, items []*model.Item, lastBuild *t
 
 func TestSingleFeedPullerPull(t *testing.T) {
 	for _, tt := range []struct {
-		description      string
-		feed             *model.Feed
-		readFeedResult   client.FeedFetchResult
-		requestErr       error
-		readFeedErr      error
-		readFeedTimeout  bool
-		updateFeedErr    error
-		expectedErr      string
-		shouldCallUpdate bool
+		description          string
+		feed                 *model.Feed
+		readFeedResult       client.FeedFetchResult
+		requestErr           error
+		readFeedErr          error
+		readFeedTimeout      bool
+		updateFeedInStoreErr error
+		expectedErr          string
+		shouldCallUpdate     bool
 	}{
 		{
 			description: "successful pull with no errors",
@@ -105,9 +105,9 @@ func TestSingleFeedPullerPull(t *testing.T) {
 					},
 				},
 			},
-			readFeedErr:      nil,
-			updateFeedErr:    nil,
-			shouldCallUpdate: true,
+			readFeedErr:          nil,
+			updateFeedInStoreErr: nil,
+			shouldCallUpdate:     true,
 		},
 		{
 			description: "readFeed returns error",
@@ -122,7 +122,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			shouldCallUpdate: false,
 		},
 		{
-			description: "readFeed succeeds but updateFeed fails",
+			description: "readFeed succeeds but updateFeedInStore fails",
 			feed: &model.Feed{
 				ID:   42,
 				Name: ptr.To("Test Feed"),
@@ -140,10 +140,10 @@ func TestSingleFeedPullerPull(t *testing.T) {
 					},
 				},
 			},
-			readFeedErr:      nil,
-			updateFeedErr:    errors.New("database error"),
-			expectedErr:      "database error",
-			shouldCallUpdate: true,
+			readFeedErr:          nil,
+			updateFeedInStoreErr: errors.New("database error"),
+			expectedErr:          "database error",
+			shouldCallUpdate:     true,
 		},
 		{
 			description: "readFeed returns request error",
@@ -184,7 +184,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			}
 
 			mockUpdate := &mockStoreUpdater{
-				err: tt.updateFeedErr,
+				err: tt.updateFeedInStoreErr,
 			}
 
 			// Create the puller with mocks

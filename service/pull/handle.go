@@ -27,7 +27,7 @@ func (p *Puller) do(ctx context.Context, f *model.Feed, force bool) error {
 		}
 	}
 
-	err := NewSingleFeedPuller(ReadFeedItems, p.updateFeed).Pull(ctx, f)
+	err := NewSingleFeedPuller(ReadFeedItems, p.updateFeedInStore).Pull(ctx, f)
 	if err != nil {
 		return err
 	}

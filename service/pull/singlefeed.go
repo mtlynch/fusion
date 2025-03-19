@@ -15,22 +15,22 @@ import (
 // is for request errors (e.g. HTTP errors).
 type ReadFeedItemsFn func(ctx context.Context, feedURL string, options model.FeedRequestOptions) (client.FeedFetchResult, error)
 
-// UpdateFeedFn is responsible for saving the result of a feed fetch to a data
+// UpdateFeedInStoreFn is responsible for saving the result of a feed fetch to a data
 // store. If the fetch failed, it records that in the data store. If the fetch
 // succeeds, it stores the latest build time in the data store and adds any new
 // feed items to the datastore.
-type UpdateFeedFn func(feedID uint, items []*model.Item, lastBuild *time.Time, requestError error) error
+type UpdateFeedInStoreFn func(feedID uint, items []*model.Item, lastBuild *time.Time, requestError error) error
 
 type SingleFeedPuller struct {
-	readFeed   ReadFeedItemsFn
-	updateFeed UpdateFeedFn
+	readFeed          ReadFeedItemsFn
+	updateFeedInStore UpdateFeedInStoreFn
 }
 
-// NewSingleFeedPuller creates a new SingleFeedPuller with the given ReadFeedItemsFn and UpdateFeedFn.
-func NewSingleFeedPuller(readFeed ReadFeedItemsFn, updateFeed UpdateFeedFn) SingleFeedPuller {
+// NewSingleFeedPuller creates a new SingleFeedPuller with the given ReadFeedItemsFn and UpdateFeedInStoreFn.
+func NewSingleFeedPuller(readFeed ReadFeedItemsFn, updateFeedInStore UpdateFeedInStoreFn) SingleFeedPuller {
 	return SingleFeedPuller{
-		readFeed:   readFeed,
-		updateFeed: updateFeed,
+		readFeed:          readFeed,
+		updateFeedInStore: updateFeedInStore,
 	}
 }
 
@@ -45,7 +45,7 @@ func (p SingleFeedPuller) Pull(ctx context.Context, feed *model.Feed) error {
 	if readErr != nil {
 		return readErr
 	}
-	return p.updateFeed(feed.ID, fetchResult.Items, fetchResult.LastBuild, nil)
+	return p.updateFeedInStore(feed.ID, fetchResult.Items, fetchResult.LastBuild, nil)
 }
 
 // ReadFeedItems implements ReadFeedItemsFn for SingleFeedPuller and is exported for use by other packages.
@@ -57,8 +57,8 @@ func ReadFeedTitle(ctx context.Context, feedURL string, options model.FeedReques
 	return client.NewFeedClient(httpx.FusionRequest).FetchTitle(ctx, feedURL, &options)
 }
 
-// updateFeed implements UpdateFeedFn for SingleFeedPuller.
-func (p *Puller) updateFeed(feedID uint, items []*model.Item, lastBuild *time.Time, requestError error) error {
+// updateFeedInStore implements UpdateFeedInStoreFn for SingleFeedPuller.
+func (p *Puller) updateFeedInStore(feedID uint, items []*model.Item, lastBuild *time.Time, requestError error) error {
 	if requestError != nil {
 		return p.feedRepo.Update(feedID, &model.Feed{
 			Failure: ptr.To(requestError.Error()),
