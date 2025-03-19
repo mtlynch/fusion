@@ -122,11 +122,9 @@ func (f Feed) CheckValidity(ctx context.Context, req *ReqFeedCheckValidity) (*Re
 	link := req.Link
 	validLinks := make([]ValidityItem, 0)
 
-	_, err := pull.ReadFeedItems(ctx, link, model.FeedRequestOptions{})
-	if err == nil {
-		// Since we no longer have State.Name, we'll use the link as the title
+	if title, err := pull.ReadFeedTitle(ctx, link, model.FeedRequestOptions{}); err == nil {
 		validLinks = append(validLinks, ValidityItem{
-			Title: &req.Link,
+			Title: &title,
 			Link:  &req.Link,
 		})
 	} else {
