@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/0x2e/fusion/model"
 	"github.com/mmcdole/gofeed"
@@ -23,21 +24,34 @@ func NewFeedClient(httpRequestFn feedHTTPRequest) FeedClient {
 	}
 }
 
-func (c FeedClient) Fetch(ctx context.Context, feedURL string, options *model.FeedRequestOptions) (*gofeed.Feed, error) {
+type FetchItemsResult struct {
+	LastBuild *time.Time
+	Items     []*model.Item
+}
+
+func (c FeedClient) FetchItems(ctx context.Context, feedURL string, options *model.FeedRequestOptions) (FetchItemsResult, error) {
 	resp, err := c.httpRequestFn(ctx, feedURL, options)
 	if err != nil {
-		return nil, err
+		return FetchItemsResult{}, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("got status code %d", resp.StatusCode)
+		return FetchItemsResult{}, fmt.Errorf("got status code %d", resp.StatusCode)
 	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return FetchItemsResult{}, err
 	}
 
-	return gofeed.NewParser().ParseString(string(data))
+	feed, err := gofeed.NewParser().ParseString(string(data))
+	if err != nil {
+		return FetchItemsResult{}, err
+	}
+
+	return FetchItemsResult{
+		LastBuild: feed.UpdatedParsed,
+		Items:     ParseGoFeedItems(feed.Items),
+	}, nil
 }

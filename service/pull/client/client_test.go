@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/0x2e/fusion/model"
+	"github.com/0x2e/fusion/pkg/ptr"
 	"github.com/0x2e/fusion/service/pull/client"
-	"github.com/mmcdole/gofeed"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -54,7 +54,7 @@ func (m *mockHTTPClient) Get(ctx context.Context, link string, options *model.Fe
 	return m.resp, nil
 }
 
-func TestFeedClientFetch(t *testing.T) {
+func TestFeedClientFetchItems(t *testing.T) {
 	for _, tt := range []struct {
 		description        string
 		feedURL            string
@@ -63,7 +63,7 @@ func TestFeedClientFetch(t *testing.T) {
 		httpStatusCode     int
 		httpErrMsg         string
 		httpBodyReadErrMsg string
-		expectedFeed       *gofeed.Feed
+		expectedResult     client.FetchItemsResult
 		expectedErrMsg     string
 	}{
 		{
@@ -83,15 +83,12 @@ func TestFeedClientFetch(t *testing.T) {
 			httpStatusCode:     http.StatusOK,
 			httpErrMsg:         "",
 			httpBodyReadErrMsg: "",
-			expectedFeed: &gofeed.Feed{
-				Title:       "Test Feed",
-				FeedType:    "rss",
-				FeedVersion: "2.0",
-				Items: []*gofeed.Item{
+			expectedResult: client.FetchItemsResult{
+				LastBuild: nil, // UpdatedParsed is nil in this test case
+				Items: []*model.Item{
 					{
-						Title: "Test Item",
-						Link:  "https://example.com/item",
-						Links: []string{"https://example.com/item"},
+						Title: ptr.To("Test Item"),
+						Link:  ptr.To("https://example.com/item"),
 					},
 				},
 			},
@@ -114,15 +111,12 @@ func TestFeedClientFetch(t *testing.T) {
 			httpStatusCode:     http.StatusOK,
 			httpErrMsg:         "",
 			httpBodyReadErrMsg: "",
-			expectedFeed: &gofeed.Feed{
-				Title:       "Test Feed",
-				FeedType:    "rss",
-				FeedVersion: "2.0",
-				Items: []*gofeed.Item{
+			expectedResult: client.FetchItemsResult{
+				LastBuild: nil, // UpdatedParsed is nil in this test case
+				Items: []*model.Item{
 					{
-						Title: "Test Item",
-						Link:  "https://example.com/item",
-						Links: []string{"https://example.com/item"},
+						Title: ptr.To("Test Item"),
+						Link:  ptr.To("https://example.com/item"),
 					},
 				},
 			},
@@ -147,15 +141,12 @@ func TestFeedClientFetch(t *testing.T) {
 			httpStatusCode:     http.StatusOK,
 			httpErrMsg:         "",
 			httpBodyReadErrMsg: "",
-			expectedFeed: &gofeed.Feed{
-				Title:       "Test Feed via Proxy",
-				FeedType:    "rss",
-				FeedVersion: "2.0",
-				Items: []*gofeed.Item{
+			expectedResult: client.FetchItemsResult{
+				LastBuild: nil, // UpdatedParsed is nil in this test case
+				Items: []*model.Item{
 					{
-						Title: "Test Item via Proxy",
-						Link:  "https://example.com/proxy-item",
-						Links: []string{"https://example.com/proxy-item"},
+						Title: ptr.To("Test Item via Proxy"),
+						Link:  ptr.To("https://example.com/proxy-item"),
 					},
 				},
 			},
@@ -169,7 +160,7 @@ func TestFeedClientFetch(t *testing.T) {
 			httpStatusCode:     0, // No status code since request errors
 			httpErrMsg:         "connection refused",
 			httpBodyReadErrMsg: "",
-			expectedFeed:       nil,
+			expectedResult:     client.FetchItemsResult{},
 			expectedErrMsg:     "connection refused",
 		},
 		{
@@ -180,7 +171,7 @@ func TestFeedClientFetch(t *testing.T) {
 			httpStatusCode:     http.StatusNotFound,
 			httpErrMsg:         "",
 			httpBodyReadErrMsg: "",
-			expectedFeed:       nil,
+			expectedResult:     client.FetchItemsResult{},
 			expectedErrMsg:     "got status code 404",
 		},
 		{
@@ -191,7 +182,7 @@ func TestFeedClientFetch(t *testing.T) {
 			httpStatusCode:     http.StatusOK,
 			httpErrMsg:         "",
 			httpBodyReadErrMsg: "mock body read error",
-			expectedFeed:       nil,
+			expectedResult:     client.FetchItemsResult{},
 			expectedErrMsg:     "mock body read error",
 		},
 		{
@@ -208,7 +199,7 @@ func TestFeedClientFetch(t *testing.T) {
 			httpErrMsg:         "",
 			httpBodyReadErrMsg: "",
 
-			expectedFeed:   nil,
+			expectedResult: client.FetchItemsResult{},
 			expectedErrMsg: "Failed to detect feed type",
 		},
 	} {
@@ -232,7 +223,7 @@ func TestFeedClientFetch(t *testing.T) {
 				}(),
 			}
 
-			actualFeed, actualErr := client.NewFeedClient(httpClient.Get).Fetch(context.Background(), tt.feedURL, tt.options)
+			actualResult, actualErr := client.NewFeedClient(httpClient.Get).FetchItems(context.Background(), tt.feedURL, tt.options)
 
 			if tt.expectedErrMsg != "" {
 				require.Error(t, actualErr)
@@ -241,7 +232,23 @@ func TestFeedClientFetch(t *testing.T) {
 				require.NoError(t, actualErr)
 			}
 
-			assert.Equal(t, tt.expectedFeed, actualFeed)
+			assert.Equal(t, tt.expectedResult.LastBuild, actualResult.LastBuild)
+			assert.Equal(t, len(tt.expectedResult.Items), len(actualResult.Items))
+
+			// Compare items if there are any
+			if len(tt.expectedResult.Items) > 0 {
+				for i, expectedItem := range tt.expectedResult.Items {
+					if i < len(actualResult.Items) {
+						actualItem := actualResult.Items[i]
+						if expectedItem.Title != nil {
+							assert.Equal(t, *expectedItem.Title, *actualItem.Title)
+						}
+						if expectedItem.Link != nil {
+							assert.Equal(t, *expectedItem.Link, *actualItem.Link)
+						}
+					}
+				}
+			}
 
 			// Verify that the HTTP client received the correct URL.
 			assert.Equal(t, tt.feedURL, httpClient.lastFeedURL, "Incorrect feed URL used")

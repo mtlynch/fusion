@@ -12,7 +12,7 @@ import (
 
 // ReadFeedItems implements ReadFeedItemsFn for SingleFeedPuller and is exported for use by other packages.
 func ReadFeedItems(ctx context.Context, feedURL string, options model.FeedRequestOptions) (FeedFetchResult, error) {
-	fetched, reqErr := client.NewFeedClient(httpx.FusionRequest).Fetch(ctx, feedURL, &options)
+	fetchResult, reqErr := client.NewFeedClient(httpx.FusionRequest).FetchItems(ctx, feedURL, &options)
 	if reqErr != nil {
 		return FeedFetchResult{
 			RequestError: reqErr,
@@ -20,8 +20,8 @@ func ReadFeedItems(ctx context.Context, feedURL string, options model.FeedReques
 	}
 
 	return FeedFetchResult{
-		LastBuild:    fetched.UpdatedParsed,
-		Items:        client.ParseGoFeedItems(fetched.Items),
+		LastBuild:    fetchResult.LastBuild,
+		Items:        fetchResult.Items,
 		RequestError: nil,
 	}, nil
 }
