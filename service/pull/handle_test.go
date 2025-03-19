@@ -1,9 +1,6 @@
 package pull_test
 
 import (
-	"context"
-	"errors"
-	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -111,37 +108,4 @@ func TestDecideFeedUpdateAction(t *testing.T) {
 			assert.Equal(t, tt.expectedSkipReason, skipReason)
 		})
 	}
-}
-
-func (m *mockReadCloser) Read(p []byte) (n int, err error) {
-	if m.errMsg != "" {
-		return 0, errors.New(m.errMsg)
-	}
-	if m.reader == nil {
-		m.reader = strings.NewReader(m.result)
-	}
-	return m.reader.Read(p)
-}
-
-func (m *mockReadCloser) Close() error {
-	return nil
-}
-
-type mockHTTPClient struct {
-	resp        *http.Response
-	err         error
-	lastFeedURL string
-	lastOptions *model.FeedRequestOptions
-}
-
-func (m *mockHTTPClient) Get(ctx context.Context, link string, options *model.FeedRequestOptions) (*http.Response, error) {
-	// Store the last feed URL and options for assertions.
-	m.lastFeedURL = link
-	m.lastOptions = options
-
-	if m.err != nil {
-		return nil, m.err
-	}
-
-	return m.resp, nil
 }
