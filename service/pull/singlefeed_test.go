@@ -49,14 +49,16 @@ type mockStoreUpdater struct {
 	err              error
 	lastFeedID       uint
 	lastItems        []*model.Item
+	lastLastBuild    *time.Time
 	lastRequestError error
 	called           bool
 }
 
-func (m *mockStoreUpdater) Update(feedID uint, items []*model.Item, requestError error) error {
+func (m *mockStoreUpdater) Update(feedID uint, items []*model.Item, lastBuild *time.Time, requestError error) error {
 	m.called = true
 	m.lastFeedID = feedID
 	m.lastItems = items
+	m.lastLastBuild = lastBuild
 	m.lastRequestError = requestError
 
 	return m.err
@@ -217,6 +219,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				assert.True(t, mockUpdate.called, "UpdateFeed should be called")
 				assert.Equal(t, tt.feed.ID, mockUpdate.lastFeedID)
 				assert.Equal(t, tt.readFeedResult.Items, mockUpdate.lastItems)
+				assert.Equal(t, tt.readFeedResult.LastBuild, mockUpdate.lastLastBuild)
 				assert.Equal(t, tt.requestErr, mockUpdate.lastRequestError)
 			} else {
 				assert.False(t, mockUpdate.called, "UpdateFeed should not be called")

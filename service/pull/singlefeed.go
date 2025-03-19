@@ -19,7 +19,7 @@ type ReadFeedItemsFn func(ctx context.Context, feedURL string, options model.Fee
 // store. If the fetch failed, it records that in the data store. If the fetch
 // succeeds, it stores the latest build time in the data store and adds any new
 // feed items to the datastore.
-type UpdateFeedFn func(feedID uint, items []*model.Item, requestError error) error
+type UpdateFeedFn func(feedID uint, items []*model.Item, lastBuild *time.Time, requestError error) error
 
 type SingleFeedPuller struct {
 	readFeed   ReadFeedItemsFn
@@ -45,7 +45,7 @@ func (p SingleFeedPuller) Pull(ctx context.Context, feed *model.Feed) error {
 	if readErr != nil {
 		return readErr
 	}
-	return p.updateFeed(feed.ID, fetchResult.Items, nil)
+	return p.updateFeed(feed.ID, fetchResult.Items, fetchResult.LastBuild, nil)
 }
 
 // ReadFeedItems implements ReadFeedItemsFn for SingleFeedPuller and is exported for use by other packages.
@@ -58,7 +58,7 @@ func ReadFeedTitle(ctx context.Context, feedURL string, options model.FeedReques
 }
 
 // updateFeed implements UpdateFeedFn for SingleFeedPuller.
-func (p *Puller) updateFeed(feedID uint, items []*model.Item, requestError error) error {
+func (p *Puller) updateFeed(feedID uint, items []*model.Item, lastBuild *time.Time, requestError error) error {
 	if requestError != nil {
 		return p.feedRepo.Update(feedID, &model.Feed{
 			Failure: ptr.To(requestError.Error()),
@@ -76,9 +76,8 @@ func (p *Puller) updateFeed(feedID uint, items []*model.Item, requestError error
 		}
 	}
 
-	// Update the feed with the new LastBuild time and clear any failure.
 	return p.feedRepo.Update(feedID, &model.Feed{
-		//LastBuild: feed.LastBuild, // TODO
-		Failure: ptr.To(""),
+		LastBuild: lastBuild,
+		Failure:   ptr.To(""),
 	})
 }
