@@ -12,11 +12,12 @@ import (
 	"github.com/0x2e/fusion/model"
 	"github.com/0x2e/fusion/pkg/ptr"
 	"github.com/0x2e/fusion/service/pull"
+	"github.com/0x2e/fusion/service/pull/client"
 )
 
 // mockFeedReader is a mock implementation of ReadFeedItemsFn
 type mockFeedReader struct {
-	result        pull.FeedFetchResult
+	result        client.FeedFetchResult
 	requestErr    error
 	err           error
 	lastFeedURL   string
@@ -25,7 +26,7 @@ type mockFeedReader struct {
 	shouldTimeout bool
 }
 
-func (m *mockFeedReader) Read(ctx context.Context, feedURL string, options model.FeedRequestOptions) (pull.FeedFetchResult, error) {
+func (m *mockFeedReader) Read(ctx context.Context, feedURL string, options model.FeedRequestOptions) (client.FeedFetchResult, error) {
 	m.lastFeedURL = feedURL
 	m.lastOptions = options
 	m.lastContext = ctx
@@ -33,11 +34,11 @@ func (m *mockFeedReader) Read(ctx context.Context, feedURL string, options model
 	// Simulate timeout if configured
 	if m.shouldTimeout {
 		// Instead of waiting for the context to time out, we'll just return a context.DeadlineExceeded error
-		return pull.FeedFetchResult{}, context.DeadlineExceeded
+		return client.FeedFetchResult{}, context.DeadlineExceeded
 	}
 
 	if m.err != nil {
-		return pull.FeedFetchResult{}, m.err
+		return client.FeedFetchResult{}, m.err
 	}
 
 	return m.result, m.requestErr
@@ -65,7 +66,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 	for _, tt := range []struct {
 		description      string
 		feed             *model.Feed
-		readFeedResult   pull.FeedFetchResult
+		readFeedResult   client.FeedFetchResult
 		requestErr       error
 		readFeedErr      error
 		readFeedTimeout  bool
@@ -83,7 +84,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 					ReqProxy: ptr.To("http://proxy.example.com"),
 				},
 			},
-			readFeedResult: pull.FeedFetchResult{
+			readFeedResult: client.FeedFetchResult{
 				LastBuild: ptr.To(time.Now()),
 				Items: []*model.Item{
 					{
@@ -113,7 +114,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
-			readFeedResult:   pull.FeedFetchResult{},
+			readFeedResult:   client.FeedFetchResult{},
 			readFeedErr:      errors.New("network error"),
 			expectedErr:      "network error",
 			shouldCallUpdate: false,
@@ -125,7 +126,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
-			readFeedResult: pull.FeedFetchResult{
+			readFeedResult: client.FeedFetchResult{
 				LastBuild: ptr.To(time.Now()),
 				Items: []*model.Item{
 					{
@@ -149,7 +150,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
-			readFeedResult: pull.FeedFetchResult{
+			readFeedResult: client.FeedFetchResult{
 				LastBuild: ptr.To(time.Now()),
 				Items:     nil,
 			},
@@ -165,7 +166,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
-			readFeedResult:   pull.FeedFetchResult{},
+			readFeedResult:   client.FeedFetchResult{},
 			readFeedTimeout:  true,
 			expectedErr:      "context deadline exceeded",
 			shouldCallUpdate: false,

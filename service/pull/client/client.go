@@ -24,33 +24,33 @@ func NewFeedClient(httpRequestFn feedHTTPRequest) FeedClient {
 	}
 }
 
-type FetchItemsResult struct {
+type FeedFetchResult struct {
 	LastBuild *time.Time
 	Items     []*model.Item
 }
 
-func (c FeedClient) FetchItems(ctx context.Context, feedURL string, options *model.FeedRequestOptions) (FetchItemsResult, error) {
+func (c FeedClient) FetchItems(ctx context.Context, feedURL string, options *model.FeedRequestOptions) (FeedFetchResult, error) {
 	resp, err := c.httpRequestFn(ctx, feedURL, options)
 	if err != nil {
-		return FetchItemsResult{}, err
+		return FeedFetchResult{}, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return FetchItemsResult{}, fmt.Errorf("got status code %d", resp.StatusCode)
+		return FeedFetchResult{}, fmt.Errorf("got status code %d", resp.StatusCode)
 	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return FetchItemsResult{}, err
+		return FeedFetchResult{}, err
 	}
 
 	feed, err := gofeed.NewParser().ParseString(string(data))
 	if err != nil {
-		return FetchItemsResult{}, err
+		return FeedFetchResult{}, err
 	}
 
-	return FetchItemsResult{
+	return FeedFetchResult{
 		LastBuild: feed.UpdatedParsed,
 		Items:     ParseGoFeedItems(feed.Items),
 	}, nil

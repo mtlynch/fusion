@@ -5,17 +5,13 @@ import (
 	"time"
 
 	"github.com/0x2e/fusion/model"
+	"github.com/0x2e/fusion/service/pull/client"
 )
-
-type FeedFetchResult struct {
-	LastBuild *time.Time
-	Items     []*model.Item
-}
 
 // ReadFeedItemsFn is responsible for reading a feed from an HTTP server and
 // converting the result to fusion-native data types. The error return value
 // is for request errors (e.g. HTTP errors).
-type ReadFeedItemsFn func(ctx context.Context, feedURL string, options model.FeedRequestOptions) (FeedFetchResult, error)
+type ReadFeedItemsFn func(ctx context.Context, feedURL string, options model.FeedRequestOptions) (client.FeedFetchResult, error)
 
 // UpdateFeedFn is responsible for saving the result of a feed fetch to a data
 // store. If the fetch failed, it records that in the data store. If the fetch
