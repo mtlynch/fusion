@@ -262,3 +262,190 @@ func TestFeedClientFetchItems(t *testing.T) {
 		})
 	}
 }
+
+func TestFeedClientFetchTitle(t *testing.T) {
+	for _, tt := range []struct {
+		description        string
+		feedURL            string
+		options            *model.FeedRequestOptions
+		httpRespBody       string
+		httpStatusCode     int
+		httpErrMsg         string
+		httpBodyReadErrMsg string
+		expectedTitle      string
+		expectedErrMsg     string
+	}{
+		{
+			description: "fetch title succeeds when HTTP request and RSS parse succeed",
+			feedURL:     "https://example.com/feed.xml",
+			options:     &model.FeedRequestOptions{},
+			httpRespBody: `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Test Feed Title</title>
+    <item>
+      <title>Test Item</title>
+      <link>https://example.com/item</link>
+    </item>
+  </channel>
+</rss>`,
+			httpStatusCode:     http.StatusOK,
+			httpErrMsg:         "",
+			httpBodyReadErrMsg: "",
+			expectedTitle:      "Test Feed Title",
+			expectedErrMsg:     "",
+		},
+		{
+			description: "fetch title succeeds with default behavior when options are nil",
+			feedURL:     "https://example.com/feed.xml",
+			options:     nil,
+			httpRespBody: `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Test Feed Title</title>
+    <item>
+      <title>Test Item</title>
+      <link>https://example.com/item</link>
+    </item>
+  </channel>
+</rss>`,
+			httpStatusCode:     http.StatusOK,
+			httpErrMsg:         "",
+			httpBodyReadErrMsg: "",
+			expectedTitle:      "Test Feed Title",
+			expectedErrMsg:     "",
+		},
+		{
+			description: "fetch title succeeds when using configured proxy server",
+			feedURL:     "https://example.com/feed.xml",
+			options: &model.FeedRequestOptions{
+				ReqProxy: func() *string { s := "http://proxy.example.com:8080"; return &s }(),
+			},
+			httpRespBody: `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Test Feed Title via Proxy</title>
+    <item>
+      <title>Test Item via Proxy</title>
+      <link>https://example.com/proxy-item</link>
+    </item>
+  </channel>
+</rss>`,
+			httpStatusCode:     http.StatusOK,
+			httpErrMsg:         "",
+			httpBodyReadErrMsg: "",
+			expectedTitle:      "Test Feed Title via Proxy",
+			expectedErrMsg:     "",
+		},
+		{
+			description:        "fetch title fails when HTTP request returns connection error",
+			feedURL:            "https://example.com/feed.xml",
+			options:            &model.FeedRequestOptions{},
+			httpRespBody:       "",
+			httpStatusCode:     0, // No status code since request errors
+			httpErrMsg:         "connection refused",
+			httpBodyReadErrMsg: "",
+			expectedTitle:      "",
+			expectedErrMsg:     "connection refused",
+		},
+		{
+			description:        "fetch title fails when HTTP response has non-200 status code",
+			feedURL:            "https://example.com/feed.xml",
+			options:            &model.FeedRequestOptions{},
+			httpRespBody:       "",
+			httpStatusCode:     http.StatusNotFound,
+			httpErrMsg:         "",
+			httpBodyReadErrMsg: "",
+			expectedTitle:      "",
+			expectedErrMsg:     "got status code 404",
+		},
+		{
+			description:        "fetch title fails when HTTP response body cannot be read",
+			feedURL:            "https://example.com/feed.xml",
+			options:            &model.FeedRequestOptions{},
+			httpRespBody:       "",
+			httpStatusCode:     http.StatusOK,
+			httpErrMsg:         "",
+			httpBodyReadErrMsg: "mock body read error",
+			expectedTitle:      "",
+			expectedErrMsg:     "mock body read error",
+		},
+		{
+			description: "fetch title fails when RSS content cannot be parsed",
+			feedURL:     "https://example.com/feed.xml",
+			options:     &model.FeedRequestOptions{},
+			httpRespBody: `<?xml version="1.0" encoding="UTF-8"?>
+<invalid>
+  <malformed>
+    <content>This is not a valid RSS feed</content>
+  </malformed>
+</invalid>`,
+			httpStatusCode:     http.StatusOK,
+			httpErrMsg:         "",
+			httpBodyReadErrMsg: "",
+			expectedTitle:      "",
+			expectedErrMsg:     "Failed to detect feed type",
+		},
+		{
+			description: "fetch title returns empty string when feed has no title",
+			feedURL:     "https://example.com/feed.xml",
+			options:     &model.FeedRequestOptions{},
+			httpRespBody: `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <item>
+      <title>Test Item</title>
+      <link>https://example.com/item</link>
+    </item>
+  </channel>
+</rss>`,
+			httpStatusCode:     http.StatusOK,
+			httpErrMsg:         "",
+			httpBodyReadErrMsg: "",
+			expectedTitle:      "",
+			expectedErrMsg:     "",
+		},
+	} {
+		t.Run(tt.description, func(t *testing.T) {
+			body := &mockReadCloser{
+				result: tt.httpRespBody,
+				errMsg: tt.httpBodyReadErrMsg,
+			}
+
+			httpClient := &mockHTTPClient{
+				resp: &http.Response{
+					StatusCode: tt.httpStatusCode,
+					Status:     http.StatusText(tt.httpStatusCode),
+					Body:       body,
+				},
+				err: func() error {
+					if tt.httpErrMsg != "" {
+						return errors.New(tt.httpErrMsg)
+					}
+					return nil
+				}(),
+			}
+
+			actualTitle, actualErr := client.NewFeedClient(httpClient.Get).FetchTitle(context.Background(), tt.feedURL, tt.options)
+
+			if tt.expectedErrMsg != "" {
+				require.Error(t, actualErr)
+				require.Contains(t, actualErr.Error(), tt.expectedErrMsg)
+			} else {
+				require.NoError(t, actualErr)
+			}
+
+			assert.Equal(t, tt.expectedTitle, actualTitle)
+
+			// Verify that the HTTP client received the correct URL.
+			assert.Equal(t, tt.feedURL, httpClient.lastFeedURL, "Incorrect feed URL used")
+
+			// Verify that the HTTP client received the correct options.
+			if tt.options == nil {
+				assert.Nil(t, httpClient.lastOptions, "Expected nil options")
+			} else {
+				assert.Equal(t, *tt.options, *httpClient.lastOptions, "Incorrect HTTP request options")
+			}
+		})
+	}
+}
