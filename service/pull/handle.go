@@ -5,41 +5,7 @@ import (
 	"time"
 
 	"github.com/0x2e/fusion/model"
-	"github.com/0x2e/fusion/pkg/httpx"
-	"github.com/0x2e/fusion/pkg/ptr"
-	"github.com/0x2e/fusion/service/pull/client"
 )
-
-// ReadFeedItems implements ReadFeedItemsFn for SingleFeedPuller and is exported for use by other packages.
-func ReadFeedItems(ctx context.Context, feedURL string, options model.FeedRequestOptions) (client.FeedFetchResult, error) {
-	return client.NewFeedClient(httpx.FusionRequest).FetchItems(ctx, feedURL, &options)
-}
-
-// updateFeed implements UpdateFeedFn for SingleFeedPuller.
-func (p *Puller) updateFeed(feed *model.Feed, items []*model.Item, requestError error) error {
-	if requestError != nil {
-		return p.feedRepo.Update(feed.ID, &model.Feed{
-			Failure: ptr.To(requestError.Error()),
-		})
-	}
-
-	if len(items) > 0 {
-		// Set the correct feed ID for all items.
-		for _, item := range items {
-			item.FeedID = feed.ID
-		}
-
-		if err := p.itemRepo.Insert(items); err != nil {
-			return err
-		}
-	}
-
-	// Update the feed with the new LastBuild time and clear any failure.
-	return p.feedRepo.Update(feed.ID, &model.Feed{
-		LastBuild: feed.LastBuild,
-		Failure:   ptr.To(""),
-	})
-}
 
 func (p *Puller) do(ctx context.Context, f *model.Feed, force bool) error {
 	logger := pullLogger.With("feed_id", f.ID, "feed_name", f.Name)
