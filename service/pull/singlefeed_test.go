@@ -47,15 +47,15 @@ func (m *mockFeedReader) Read(ctx context.Context, feedURL string, options model
 // mockStoreUpdater is a mock implementation of UpdateFeedFn
 type mockStoreUpdater struct {
 	err              error
-	lastFeed         *model.Feed
+	lastFeedID       uint
 	lastItems        []*model.Item
 	lastRequestError error
 	called           bool
 }
 
-func (m *mockStoreUpdater) Update(feed *model.Feed, items []*model.Item, requestError error) error {
+func (m *mockStoreUpdater) Update(feedID uint, items []*model.Item, requestError error) error {
 	m.called = true
-	m.lastFeed = feed
+	m.lastFeedID = feedID
 	m.lastItems = items
 	m.lastRequestError = requestError
 
@@ -215,7 +215,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			// Verify UpdateFeed call behavior
 			if tt.shouldCallUpdate {
 				assert.True(t, mockUpdate.called, "UpdateFeed should be called")
-				assert.Equal(t, tt.feed, mockUpdate.lastFeed)
+				assert.Equal(t, tt.feed.ID, mockUpdate.lastFeedID)
 				assert.Equal(t, tt.readFeedResult.Items, mockUpdate.lastItems)
 				assert.Equal(t, tt.requestErr, mockUpdate.lastRequestError)
 			} else {
