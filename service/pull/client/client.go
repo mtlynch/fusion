@@ -36,8 +36,8 @@ type FetchItemsResult struct {
 
 // fetchFeed is a helper function that handles the common logic of fetching and parsing a feed.
 // It returns the parsed feed or an error.
-func (c FeedClient) fetchFeed(ctx context.Context, feedURL string, options *model.FeedRequestOptions) (*gofeed.Feed, error) {
-	resp, err := c.httpRequestFn(ctx, feedURL, options)
+func (c FeedClient) fetchFeed(ctx context.Context, feedURL string, options model.FeedRequestOptions) (*gofeed.Feed, error) {
+	resp, err := c.httpRequestFn(ctx, feedURL, &options)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (c FeedClient) fetchFeed(ctx context.Context, feedURL string, options *mode
 	return gofeed.NewParser().ParseString(string(data))
 }
 
-func (c FeedClient) FetchItems(ctx context.Context, feedURL string, options *model.FeedRequestOptions) (FetchItemsResult, error) {
+func (c FeedClient) FetchItems(ctx context.Context, feedURL string, options model.FeedRequestOptions) (FetchItemsResult, error) {
 	feed, err := c.fetchFeed(ctx, feedURL, options)
 	if err != nil {
 		return FetchItemsResult{}, err
@@ -67,7 +67,7 @@ func (c FeedClient) FetchItems(ctx context.Context, feedURL string, options *mod
 	}, nil
 }
 
-func (c FeedClient) FetchTitle(ctx context.Context, feedURL string, options *model.FeedRequestOptions) (string, error) {
+func (c FeedClient) FetchTitle(ctx context.Context, feedURL string, options model.FeedRequestOptions) (string, error) {
 	feed, err := c.fetchFeed(ctx, feedURL, options)
 	if err != nil {
 		return "", err

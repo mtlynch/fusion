@@ -45,13 +45,8 @@ func (p SingleFeedPuller) Pull(ctx context.Context, feed *model.Feed) error {
 	return p.updateFeedInStore(feed.ID, fetchResult.Items, fetchResult.LastBuild, readErr)
 }
 
-// ReadFeedItems implements ReadFeedItemsFn for SingleFeedPuller and is exported for use by other packages.
-func ReadFeedItems(ctx context.Context, feedURL string, options model.FeedRequestOptions) (client.FetchItemsResult, error) {
-	return client.NewFeedClient().FetchItems(ctx, feedURL, &options)
-}
-
 func ReadFeedTitle(ctx context.Context, feedURL string, options model.FeedRequestOptions) (string, error) {
-	return client.NewFeedClient().FetchTitle(ctx, feedURL, &options)
+	return client.NewFeedClient().FetchTitle(ctx, feedURL, options)
 }
 
 // updateFeedInStore implements UpdateFeedInStoreFn for SingleFeedPuller.

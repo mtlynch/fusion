@@ -58,7 +58,7 @@ func TestFeedClientFetchItems(t *testing.T) {
 	for _, tt := range []struct {
 		description        string
 		feedURL            string
-		options            *model.FeedRequestOptions
+		options            model.FeedRequestOptions
 		httpRespBody       string
 		httpStatusCode     int
 		httpErrMsg         string
@@ -69,7 +69,7 @@ func TestFeedClientFetchItems(t *testing.T) {
 		{
 			description: "fetch succeeds when HTTP request and RSS parse succeed",
 			feedURL:     "https://example.com/feed.xml",
-			options:     &model.FeedRequestOptions{},
+			options:     model.FeedRequestOptions{},
 			httpRespBody: `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
@@ -97,7 +97,7 @@ func TestFeedClientFetchItems(t *testing.T) {
 		{
 			description: "fetch succeeds with default behavior when options are nil",
 			feedURL:     "https://example.com/feed.xml",
-			options:     nil,
+			options:     model.FeedRequestOptions{},
 			httpRespBody: `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
@@ -125,7 +125,7 @@ func TestFeedClientFetchItems(t *testing.T) {
 		{
 			description: "fetch succeeds when using configured proxy server",
 			feedURL:     "https://example.com/feed.xml",
-			options: &model.FeedRequestOptions{
+			options: model.FeedRequestOptions{
 				ReqProxy: func() *string { s := "http://proxy.example.com:8080"; return &s }(),
 			},
 			httpRespBody: `<?xml version="1.0" encoding="UTF-8"?>
@@ -155,7 +155,7 @@ func TestFeedClientFetchItems(t *testing.T) {
 		{
 			description:        "fetch fails when HTTP request returns connection error",
 			feedURL:            "https://example.com/feed.xml",
-			options:            &model.FeedRequestOptions{},
+			options:            model.FeedRequestOptions{},
 			httpRespBody:       "",
 			httpStatusCode:     0, // No status code since request errors
 			httpErrMsg:         "connection refused",
@@ -166,7 +166,7 @@ func TestFeedClientFetchItems(t *testing.T) {
 		{
 			description:        "fetch fails when HTTP response has non-200 status code",
 			feedURL:            "https://example.com/feed.xml",
-			options:            &model.FeedRequestOptions{},
+			options:            model.FeedRequestOptions{},
 			httpRespBody:       "",
 			httpStatusCode:     http.StatusNotFound,
 			httpErrMsg:         "",
@@ -177,7 +177,7 @@ func TestFeedClientFetchItems(t *testing.T) {
 		{
 			description:        "fetch fails when HTTP response body cannot be read",
 			feedURL:            "https://example.com/feed.xml",
-			options:            &model.FeedRequestOptions{},
+			options:            model.FeedRequestOptions{},
 			httpRespBody:       "",
 			httpStatusCode:     http.StatusOK,
 			httpErrMsg:         "",
@@ -188,7 +188,7 @@ func TestFeedClientFetchItems(t *testing.T) {
 		{
 			description: "fetch fails when RSS content cannot be parsed",
 			feedURL:     "https://example.com/feed.xml",
-			options:     &model.FeedRequestOptions{},
+			options:     model.FeedRequestOptions{},
 			httpRespBody: `<?xml version="1.0" encoding="UTF-8"?>
 <invalid>
   <malformed>
@@ -254,11 +254,7 @@ func TestFeedClientFetchItems(t *testing.T) {
 			assert.Equal(t, tt.feedURL, httpClient.lastFeedURL, "Incorrect feed URL used")
 
 			// Verify that the HTTP client received the correct options.
-			if tt.options == nil {
-				assert.Nil(t, httpClient.lastOptions, "Expected nil options")
-			} else {
-				assert.Equal(t, *tt.options, *httpClient.lastOptions, "Incorrect HTTP request options")
-			}
+			assert.Equal(t, tt.options, *httpClient.lastOptions, "Incorrect HTTP request options")
 		})
 	}
 }
@@ -267,7 +263,7 @@ func TestFeedClientFetchTitle(t *testing.T) {
 	for _, tt := range []struct {
 		description        string
 		feedURL            string
-		options            *model.FeedRequestOptions
+		options            model.FeedRequestOptions
 		httpRespBody       string
 		httpStatusCode     int
 		httpErrMsg         string
@@ -278,7 +274,7 @@ func TestFeedClientFetchTitle(t *testing.T) {
 		{
 			description: "fetch title succeeds when HTTP request and RSS parse succeed",
 			feedURL:     "https://example.com/feed.xml",
-			options:     &model.FeedRequestOptions{},
+			options:     model.FeedRequestOptions{},
 			httpRespBody: `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
@@ -298,7 +294,7 @@ func TestFeedClientFetchTitle(t *testing.T) {
 		{
 			description: "fetch title succeeds with default behavior when options are nil",
 			feedURL:     "https://example.com/feed.xml",
-			options:     nil,
+			options:     model.FeedRequestOptions{},
 			httpRespBody: `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
@@ -318,7 +314,7 @@ func TestFeedClientFetchTitle(t *testing.T) {
 		{
 			description: "fetch title succeeds when using configured proxy server",
 			feedURL:     "https://example.com/feed.xml",
-			options: &model.FeedRequestOptions{
+			options: model.FeedRequestOptions{
 				ReqProxy: func() *string { s := "http://proxy.example.com:8080"; return &s }(),
 			},
 			httpRespBody: `<?xml version="1.0" encoding="UTF-8"?>
@@ -340,7 +336,7 @@ func TestFeedClientFetchTitle(t *testing.T) {
 		{
 			description:        "fetch title fails when HTTP request returns connection error",
 			feedURL:            "https://example.com/feed.xml",
-			options:            &model.FeedRequestOptions{},
+			options:            model.FeedRequestOptions{},
 			httpRespBody:       "",
 			httpStatusCode:     0, // No status code since request errors
 			httpErrMsg:         "connection refused",
@@ -351,7 +347,7 @@ func TestFeedClientFetchTitle(t *testing.T) {
 		{
 			description:        "fetch title fails when HTTP response has non-200 status code",
 			feedURL:            "https://example.com/feed.xml",
-			options:            &model.FeedRequestOptions{},
+			options:            model.FeedRequestOptions{},
 			httpRespBody:       "",
 			httpStatusCode:     http.StatusNotFound,
 			httpErrMsg:         "",
@@ -362,7 +358,7 @@ func TestFeedClientFetchTitle(t *testing.T) {
 		{
 			description:        "fetch title fails when HTTP response body cannot be read",
 			feedURL:            "https://example.com/feed.xml",
-			options:            &model.FeedRequestOptions{},
+			options:            model.FeedRequestOptions{},
 			httpRespBody:       "",
 			httpStatusCode:     http.StatusOK,
 			httpErrMsg:         "",
@@ -373,7 +369,7 @@ func TestFeedClientFetchTitle(t *testing.T) {
 		{
 			description: "fetch title fails when RSS content cannot be parsed",
 			feedURL:     "https://example.com/feed.xml",
-			options:     &model.FeedRequestOptions{},
+			options:     model.FeedRequestOptions{},
 			httpRespBody: `<?xml version="1.0" encoding="UTF-8"?>
 <invalid>
   <malformed>
@@ -389,7 +385,7 @@ func TestFeedClientFetchTitle(t *testing.T) {
 		{
 			description: "fetch title returns empty string when feed has no title",
 			feedURL:     "https://example.com/feed.xml",
-			options:     &model.FeedRequestOptions{},
+			options:     model.FeedRequestOptions{},
 			httpRespBody: `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
@@ -441,11 +437,7 @@ func TestFeedClientFetchTitle(t *testing.T) {
 			assert.Equal(t, tt.feedURL, httpClient.lastFeedURL, "Incorrect feed URL used")
 
 			// Verify that the HTTP client received the correct options.
-			if tt.options == nil {
-				assert.Nil(t, httpClient.lastOptions, "Expected nil options")
-			} else {
-				assert.Equal(t, *tt.options, *httpClient.lastOptions, "Incorrect HTTP request options")
-			}
+			assert.Equal(t, tt.options, *httpClient.lastOptions, "Incorrect HTTP request options")
 		})
 	}
 }

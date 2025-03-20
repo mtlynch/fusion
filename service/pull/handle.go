@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/0x2e/fusion/model"
+	"github.com/0x2e/fusion/service/pull/client"
 )
 
 func (p *Puller) do(ctx context.Context, f *model.Feed, force bool) error {
@@ -27,7 +28,7 @@ func (p *Puller) do(ctx context.Context, f *model.Feed, force bool) error {
 		}
 	}
 
-	err := NewSingleFeedPuller(ReadFeedItems, p.updateFeedInStore).Pull(ctx, f)
+	err := NewSingleFeedPuller(client.NewFeedClient().FetchItems, p.updateFeedInStore).Pull(ctx, f)
 	if err != nil {
 		return err
 	}
