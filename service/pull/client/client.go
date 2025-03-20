@@ -8,17 +8,22 @@ import (
 	"time"
 
 	"github.com/0x2e/fusion/model"
+	"github.com/0x2e/fusion/pkg/httpx"
 	"github.com/mmcdole/gofeed"
 )
 
-type FeedHTTPRequest func(ctx context.Context, link string, options *model.FeedRequestOptions) (*http.Response, error)
+type HttpRequestFn func(ctx context.Context, link string, options *model.FeedRequestOptions) (*http.Response, error)
 
 // FeedClient retrieves a feed given a feed URL and parses the result.
 type FeedClient struct {
-	httpRequestFn FeedHTTPRequest
+	httpRequestFn HttpRequestFn
 }
 
-func NewFeedClient(httpRequestFn FeedHTTPRequest) FeedClient {
+func NewFeedClient() FeedClient {
+	return NewFeedClientWithRequestFn(httpx.FusionRequest)
+}
+
+func NewFeedClientWithRequestFn(httpRequestFn HttpRequestFn) FeedClient {
 	return FeedClient{
 		httpRequestFn: httpRequestFn,
 	}

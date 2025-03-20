@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/0x2e/fusion/model"
-	"github.com/0x2e/fusion/pkg/httpx"
 	"github.com/0x2e/fusion/pkg/ptr"
 	"github.com/0x2e/fusion/service/pull/client"
 )
@@ -48,11 +47,11 @@ func (p SingleFeedPuller) Pull(ctx context.Context, feed *model.Feed) error {
 
 // ReadFeedItems implements ReadFeedItemsFn for SingleFeedPuller and is exported for use by other packages.
 func ReadFeedItems(ctx context.Context, feedURL string, options model.FeedRequestOptions) (client.FetchItemsResult, error) {
-	return client.NewFeedClient(httpx.FusionRequest).FetchItems(ctx, feedURL, &options)
+	return client.NewFeedClient().FetchItems(ctx, feedURL, &options)
 }
 
 func ReadFeedTitle(ctx context.Context, feedURL string, options model.FeedRequestOptions) (string, error) {
-	return client.NewFeedClient(httpx.FusionRequest).FetchTitle(ctx, feedURL, &options)
+	return client.NewFeedClient().FetchTitle(ctx, feedURL, &options)
 }
 
 // updateFeedInStore implements UpdateFeedInStoreFn for SingleFeedPuller.

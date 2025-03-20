@@ -223,7 +223,7 @@ func TestFeedClientFetchItems(t *testing.T) {
 				}(),
 			}
 
-			actualResult, actualErr := client.NewFeedClient(httpClient.Get).FetchItems(context.Background(), tt.feedURL, tt.options)
+			actualResult, actualErr := client.NewFeedClientWithRequestFn(httpClient.Get).FetchItems(context.Background(), tt.feedURL, tt.options)
 
 			if tt.expectedErrMsg != "" {
 				require.Error(t, actualErr)
@@ -426,7 +426,7 @@ func TestFeedClientFetchTitle(t *testing.T) {
 				}(),
 			}
 
-			actualTitle, actualErr := client.NewFeedClient(httpClient.Get).FetchTitle(context.Background(), tt.feedURL, tt.options)
+			actualTitle, actualErr := client.NewFeedClientWithRequestFn(httpClient.Get).FetchTitle(context.Background(), tt.feedURL, tt.options)
 
 			if tt.expectedErrMsg != "" {
 				require.Error(t, actualErr)
