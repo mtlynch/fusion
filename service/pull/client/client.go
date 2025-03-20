@@ -19,14 +19,26 @@ type FeedClient struct {
 	httpRequestFn HttpRequestFn
 }
 
+// NewFeedClient creates a feed client with the default options.
 func NewFeedClient() FeedClient {
 	return NewFeedClientWithRequestFn(httpx.FusionRequest)
 }
 
+// NewFeedClientWithRequestFn creates a feed client that uses a custom
+// HttpRequestFn to retrieve remote feeds.
 func NewFeedClientWithRequestFn(httpRequestFn HttpRequestFn) FeedClient {
 	return FeedClient{
 		httpRequestFn: httpRequestFn,
 	}
+}
+
+func (c FeedClient) FetchTitle(ctx context.Context, feedURL string, options model.FeedRequestOptions) (string, error) {
+	feed, err := c.fetchFeed(ctx, feedURL, options)
+	if err != nil {
+		return "", err
+	}
+
+	return feed.Title, nil
 }
 
 type FetchItemsResult struct {
@@ -34,8 +46,18 @@ type FetchItemsResult struct {
 	Items     []*model.Item
 }
 
-// fetchFeed is a helper function that handles the common logic of fetching and parsing a feed.
-// It returns the parsed feed or an error.
+func (c FeedClient) FetchItems(ctx context.Context, feedURL string, options model.FeedRequestOptions) (FetchItemsResult, error) {
+	feed, err := c.fetchFeed(ctx, feedURL, options)
+	if err != nil {
+		return FetchItemsResult{}, err
+	}
+
+	return FetchItemsResult{
+		LastBuild: feed.UpdatedParsed,
+		Items:     ParseGoFeedItems(feed.Items),
+	}, nil
+}
+
 func (c FeedClient) fetchFeed(ctx context.Context, feedURL string, options model.FeedRequestOptions) (*gofeed.Feed, error) {
 	resp, err := c.httpRequestFn(ctx, feedURL, &options)
 	if err != nil {
@@ -53,25 +75,4 @@ func (c FeedClient) fetchFeed(ctx context.Context, feedURL string, options model
 	}
 
 	return gofeed.NewParser().ParseString(string(data))
-}
-
-func (c FeedClient) FetchItems(ctx context.Context, feedURL string, options model.FeedRequestOptions) (FetchItemsResult, error) {
-	feed, err := c.fetchFeed(ctx, feedURL, options)
-	if err != nil {
-		return FetchItemsResult{}, err
-	}
-
-	return FetchItemsResult{
-		LastBuild: feed.UpdatedParsed,
-		Items:     ParseGoFeedItems(feed.Items),
-	}, nil
-}
-
-func (c FeedClient) FetchTitle(ctx context.Context, feedURL string, options model.FeedRequestOptions) (string, error) {
-	feed, err := c.fetchFeed(ctx, feedURL, options)
-	if err != nil {
-		return "", err
-	}
-
-	return feed.Title, nil
 }
