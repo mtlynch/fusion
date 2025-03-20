@@ -24,7 +24,7 @@ func NewFeedClient(httpRequestFn FeedHTTPRequest) FeedClient {
 	}
 }
 
-type FeedFetchResult struct {
+type FetchItemsResult struct {
 	LastBuild *time.Time
 	Items     []*model.Item
 }
@@ -50,13 +50,13 @@ func (c FeedClient) fetchFeed(ctx context.Context, feedURL string, options *mode
 	return gofeed.NewParser().ParseString(string(data))
 }
 
-func (c FeedClient) FetchItems(ctx context.Context, feedURL string, options *model.FeedRequestOptions) (FeedFetchResult, error) {
+func (c FeedClient) FetchItems(ctx context.Context, feedURL string, options *model.FeedRequestOptions) (FetchItemsResult, error) {
 	feed, err := c.fetchFeed(ctx, feedURL, options)
 	if err != nil {
-		return FeedFetchResult{}, err
+		return FetchItemsResult{}, err
 	}
 
-	return FeedFetchResult{
+	return FetchItemsResult{
 		LastBuild: feed.UpdatedParsed,
 		Items:     ParseGoFeedItems(feed.Items),
 	}, nil

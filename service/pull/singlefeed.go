@@ -13,7 +13,7 @@ import (
 // ReadFeedItemsFn is responsible for reading a feed from an HTTP server and
 // converting the result to fusion-native data types. The error return value
 // is for request errors (e.g. HTTP errors).
-type ReadFeedItemsFn func(ctx context.Context, feedURL string, options model.FeedRequestOptions) (client.FeedFetchResult, error)
+type ReadFeedItemsFn func(ctx context.Context, feedURL string, options model.FeedRequestOptions) (client.FetchItemsResult, error)
 
 // UpdateFeedInStoreFn is responsible for saving the result of a feed fetch to a data
 // store. If the fetch failed, it records that in the data store. If the fetch
@@ -47,7 +47,7 @@ func (p SingleFeedPuller) Pull(ctx context.Context, feed *model.Feed) error {
 }
 
 // ReadFeedItems implements ReadFeedItemsFn for SingleFeedPuller and is exported for use by other packages.
-func ReadFeedItems(ctx context.Context, feedURL string, options model.FeedRequestOptions) (client.FeedFetchResult, error) {
+func ReadFeedItems(ctx context.Context, feedURL string, options model.FeedRequestOptions) (client.FetchItemsResult, error) {
 	return client.NewFeedClient(httpx.FusionRequest).FetchItems(ctx, feedURL, &options)
 }
 
