@@ -45,10 +45,6 @@ func (p SingleFeedPuller) Pull(ctx context.Context, feed *model.Feed) error {
 	return p.updateFeedInStore(feed.ID, fetchResult.Items, fetchResult.LastBuild, readErr)
 }
 
-func ReadFeedTitle(ctx context.Context, feedURL string, options model.FeedRequestOptions) (string, error) {
-	return client.NewFeedClient().FetchTitle(ctx, feedURL, options)
-}
-
 // updateFeedInStore implements UpdateFeedInStoreFn for SingleFeedPuller.
 func (p *Puller) updateFeedInStore(feedID uint, items []*model.Item, lastBuild *time.Time, requestError error) error {
 	if requestError != nil {

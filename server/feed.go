@@ -10,6 +10,7 @@ import (
 	"github.com/0x2e/fusion/model"
 	"github.com/0x2e/fusion/repo"
 	"github.com/0x2e/fusion/service/pull"
+	"github.com/0x2e/fusion/service/pull/client"
 	"github.com/0x2e/fusion/service/sniff"
 )
 
@@ -119,7 +120,7 @@ func (f Feed) Create(ctx context.Context, req *ReqFeedCreate) error {
 }
 
 func (f Feed) CheckValidity(ctx context.Context, req *ReqFeedCheckValidity) (*RespFeedCheckValidity, error) {
-	if title, err := pull.ReadFeedTitle(ctx, req.Link, model.FeedRequestOptions{}); err == nil {
+	if title, err := client.NewFeedClient().FetchTitle(ctx, req.Link, model.FeedRequestOptions{}); err == nil {
 		return &RespFeedCheckValidity{
 			FeedLinks: []ValidityItem{
 				{
