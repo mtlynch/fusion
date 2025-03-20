@@ -11,14 +11,14 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
-type feedHTTPRequest func(ctx context.Context, link string, options *model.FeedRequestOptions) (*http.Response, error)
+type FeedHTTPRequest func(ctx context.Context, link string, options *model.FeedRequestOptions) (*http.Response, error)
 
 // FeedClient retrieves a feed given a feed URL and parses the result.
 type FeedClient struct {
-	httpRequestFn feedHTTPRequest
+	httpRequestFn FeedHTTPRequest
 }
 
-func NewFeedClient(httpRequestFn feedHTTPRequest) FeedClient {
+func NewFeedClient(httpRequestFn FeedHTTPRequest) FeedClient {
 	return FeedClient{
 		httpRequestFn: httpRequestFn,
 	}
