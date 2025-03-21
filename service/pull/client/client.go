@@ -42,6 +42,16 @@ func (c FeedClient) FetchTitle(ctx context.Context, feedURL string, options mode
 	return feed.Title, nil
 }
 
+// FetchDeclaredLink retrieves the feed link declared within the feed content
+func (c FeedClient) FetchDeclaredLink(ctx context.Context, feedURL string, options model.FeedRequestOptions) (string, error) {
+	feed, err := c.fetchFeed(ctx, feedURL, options)
+	if err != nil {
+		return "", err
+	}
+
+	return feed.FeedLink, nil
+}
+
 type FetchItemsResult struct {
 	LastBuild *time.Time
 	Items     []*model.Item
