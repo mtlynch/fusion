@@ -101,8 +101,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 	for _, tt := range []struct {
 		description          string
 		feed                 model.Feed
-		readFeedResult       client.FetchItemsResult
-		readErr              error
+		mockFeedReader       *mockFeedReader
 		updateFeedInStoreErr error
 		expectedErrMsg       string
 		expectedStoredItems  []*model.Item
@@ -117,26 +116,28 @@ func TestSingleFeedPullerPull(t *testing.T) {
 					ReqProxy: ptr.To("http://proxy.example.com"),
 				},
 			},
-			readFeedResult: client.FetchItemsResult{
-				LastBuild: mustParseTime("2025-01-01T12:00:00Z"),
-				Items: []*model.Item{
-					{
-						Title:   ptr.To("Test Item 1"),
-						GUID:    ptr.To("guid1"),
-						Link:    ptr.To("https://example.com/item1"),
-						Content: ptr.To("Content 1"),
-						FeedID:  42,
-					},
-					{
-						Title:   ptr.To("Test Item 2"),
-						GUID:    ptr.To("guid2"),
-						Link:    ptr.To("https://example.com/item2"),
-						Content: ptr.To("Content 2"),
-						FeedID:  42,
+			mockFeedReader: &mockFeedReader{
+				result: client.FetchItemsResult{
+					LastBuild: mustParseTime("2025-01-01T12:00:00Z"),
+					Items: []*model.Item{
+						{
+							Title:   ptr.To("Test Item 1"),
+							GUID:    ptr.To("guid1"),
+							Link:    ptr.To("https://example.com/item1"),
+							Content: ptr.To("Content 1"),
+							FeedID:  42,
+						},
+						{
+							Title:   ptr.To("Test Item 2"),
+							GUID:    ptr.To("guid2"),
+							Link:    ptr.To("https://example.com/item2"),
+							Content: ptr.To("Content 2"),
+							FeedID:  42,
+						},
 					},
 				},
+				err: nil,
 			},
-			readErr:              nil,
 			updateFeedInStoreErr: nil,
 			expectedStoredItems: []*model.Item{
 				{
@@ -162,8 +163,10 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
-			readFeedResult:      client.FetchItemsResult{},
-			readErr:             errors.New("network error"),
+			mockFeedReader: &mockFeedReader{
+				result: client.FetchItemsResult{},
+				err:    errors.New("network error"),
+			},
 			expectedErrMsg:      "",
 			expectedStoredItems: nil,
 		},
@@ -174,19 +177,21 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
-			readFeedResult: client.FetchItemsResult{
-				LastBuild: mustParseTime("2025-01-01T12:00:00Z"),
-				Items: []*model.Item{
-					{
-						Title:   ptr.To("Test Item 1"),
-						GUID:    ptr.To("guid1"),
-						Link:    ptr.To("https://example.com/item1"),
-						Content: ptr.To("Content 1"),
-						FeedID:  42,
+			mockFeedReader: &mockFeedReader{
+				result: client.FetchItemsResult{
+					LastBuild: mustParseTime("2025-01-01T12:00:00Z"),
+					Items: []*model.Item{
+						{
+							Title:   ptr.To("Test Item 1"),
+							GUID:    ptr.To("guid1"),
+							Link:    ptr.To("https://example.com/item1"),
+							Content: ptr.To("Content 1"),
+							FeedID:  42,
+						},
 					},
 				},
+				err: nil,
 			},
-			readErr:              nil,
 			updateFeedInStoreErr: errors.New("dummy database error"),
 			expectedErrMsg:       "dummy database error",
 			expectedStoredItems:  nil, // Don't check items when updateFeedInStore fails
@@ -198,11 +203,13 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
-			readFeedResult: client.FetchItemsResult{
-				LastBuild: mustParseTime("2025-01-01T12:00:00Z"),
-				Items:     nil,
+			mockFeedReader: &mockFeedReader{
+				result: client.FetchItemsResult{
+					LastBuild: mustParseTime("2025-01-01T12:00:00Z"),
+					Items:     nil,
+				},
+				err: errors.New("HTTP 404"),
 			},
-			readErr:             errors.New("HTTP 404"),
 			expectedErrMsg:      "",
 			expectedStoredItems: nil,
 		},
@@ -213,21 +220,18 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
-			readFeedResult:      client.FetchItemsResult{},
-			readErr:             context.DeadlineExceeded,
+			mockFeedReader: &mockFeedReader{
+				result: client.FetchItemsResult{},
+				err:    context.DeadlineExceeded,
+			},
 			expectedErrMsg:      "",
 			expectedStoredItems: nil,
 		},
 	} {
 		t.Run(tt.description, func(t *testing.T) {
-			mockRead := &mockFeedReader{
-				result: tt.readFeedResult,
-				err:    tt.readErr,
-			}
-
 			mockUpdate := newMockStoreUpdater(tt.updateFeedInStoreErr)
 
-			err := pull.NewSingleFeedPuller(mockRead.Read, mockUpdate.Update).Pull(context.Background(), &tt.feed)
+			err := pull.NewSingleFeedPuller(tt.mockFeedReader.Read, mockUpdate.Update).Pull(context.Background(), &tt.feed)
 
 			if tt.expectedErrMsg != "" {
 				require.Error(t, err)
@@ -236,8 +240,8 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			assert.Equal(t, *tt.feed.Link, mockRead.lastFeedURL)
-			assert.Equal(t, tt.feed.FeedRequestOptions, mockRead.lastOptions)
+			assert.Equal(t, *tt.feed.Link, tt.mockFeedReader.lastFeedURL)
+			assert.Equal(t, tt.feed.FeedRequestOptions, tt.mockFeedReader.lastOptions)
 
 			// Only check stored data if updateFeedInStore succeeded.
 			if tt.updateFeedInStoreErr == nil {
@@ -247,12 +251,12 @@ func TestSingleFeedPullerPull(t *testing.T) {
 
 				lastBuild, err := mockUpdate.ReadLastBuild(tt.feed.ID)
 				require.NoError(t, err)
-				assert.Equal(t, tt.readFeedResult.LastBuild, lastBuild)
+				assert.Equal(t, tt.mockFeedReader.result.LastBuild, lastBuild)
 
 				// Check that the correct error was passed to Update
 				requestError, err := mockUpdate.ReadRequestError(tt.feed.ID)
 				require.NoError(t, err)
-				assert.Equal(t, tt.readErr, requestError)
+				assert.Equal(t, tt.mockFeedReader.err, requestError)
 			}
 
 		})
