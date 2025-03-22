@@ -20,6 +20,13 @@ type ReadFeedItemsFn func(ctx context.Context, feedURL string, options model.Fee
 // feed items to the datastore.
 type UpdateFeedInStoreFn func(feedID uint, items []*model.Item, lastBuild *time.Time, requestError error) error
 
+// SingleFeedRepo represents a datastore for storing information about a feed.
+type SingleFeedRepo interface {
+	InsertItems(items []*model.Item) error
+	RecordSuccess(lastBuild *time.Time) error
+	RecordFailure(readErr error) error
+}
+
 type SingleFeedPuller struct {
 	readFeed ReadFeedItemsFn
 	repo     SingleFeedRepo
@@ -83,17 +90,9 @@ func (p SingleFeedPuller) updateFeedInStore(feedID uint, items []*model.Item, la
 		return p.repo.RecordFailure(requestError)
 	}
 
-	if len(items) > 0 {
-		if err := p.repo.InsertItems(items); err != nil {
-			return err
-		}
+	if err := p.repo.InsertItems(items); err != nil {
+		return err
 	}
 
 	return p.repo.RecordSuccess(lastBuild)
-}
-
-type SingleFeedRepo interface {
-	InsertItems(items []*model.Item) error
-	RecordSuccess(lastBuild *time.Time) error
-	RecordFailure(readErr error) error
 }
