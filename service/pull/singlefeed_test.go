@@ -17,22 +17,15 @@ import (
 
 // mockFeedReader is a mock implementation of ReadFeedItemsFn
 type mockFeedReader struct {
-	result        client.FetchItemsResult
-	err           error
-	lastFeedURL   string
-	lastOptions   model.FeedRequestOptions
-	shouldTimeout bool
+	result      client.FetchItemsResult
+	err         error
+	lastFeedURL string
+	lastOptions model.FeedRequestOptions
 }
 
 func (m *mockFeedReader) Read(ctx context.Context, feedURL string, options model.FeedRequestOptions) (client.FetchItemsResult, error) {
 	m.lastFeedURL = feedURL
 	m.lastOptions = options
-
-	// Simulate timeout if configured
-	if m.shouldTimeout {
-		// Instead of waiting for the context to time out, we'll just return a context.DeadlineExceeded error
-		return client.FetchItemsResult{}, context.DeadlineExceeded
-	}
 
 	return m.result, m.err
 }
@@ -110,7 +103,6 @@ func TestSingleFeedPullerPull(t *testing.T) {
 		feed                 model.Feed
 		readFeedResult       client.FetchItemsResult
 		readErr              error
-		readFeedTimeout      bool
 		updateFeedInStoreErr error
 		expectedErrMsg       string
 		expectedStoredItems  []*model.Item
@@ -222,16 +214,15 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
 			readFeedResult:      client.FetchItemsResult{},
-			readFeedTimeout:     true,
+			readErr:             context.DeadlineExceeded,
 			expectedErrMsg:      "",
 			expectedStoredItems: nil,
 		},
 	} {
 		t.Run(tt.description, func(t *testing.T) {
 			mockRead := &mockFeedReader{
-				result:        tt.readFeedResult,
-				err:           tt.readErr,
-				shouldTimeout: tt.readFeedTimeout,
+				result: tt.readFeedResult,
+				err:    tt.readErr,
 			}
 
 			mockUpdate := newMockStoreUpdater(tt.updateFeedInStoreErr)
@@ -259,15 +250,9 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				assert.Equal(t, tt.readFeedResult.LastBuild, lastBuild)
 
 				// Check that the correct error was passed to Update
-				var expectedRequestError error
-				if tt.readFeedTimeout {
-					expectedRequestError = context.DeadlineExceeded
-				} else {
-					expectedRequestError = tt.readErr
-				}
 				requestError, err := mockUpdate.ReadRequestError(tt.feed.ID)
 				require.NoError(t, err)
-				assert.Equal(t, expectedRequestError, requestError)
+				assert.Equal(t, tt.readErr, requestError)
 			}
 
 		})
