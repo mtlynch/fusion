@@ -40,6 +40,7 @@ func (p SingleFeedPuller) Pull(ctx context.Context, feed *model.Feed) error {
 
 	if readErr != nil {
 		logger.Info("fetched feed successfully")
+		logger.Infof("fetched %d items", len(fetchResult.Items))
 	} else {
 		logger.Infof("fetch failed: %v", readErr)
 	}
