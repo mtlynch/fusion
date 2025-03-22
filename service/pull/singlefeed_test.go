@@ -39,22 +39,69 @@ func (m *mockFeedReader) Read(ctx context.Context, feedURL string, options model
 
 // mockStoreUpdater is a mock implementation of UpdateFeedInStoreFn
 type mockStoreUpdater struct {
-	err              error
-	lastFeedID       uint
-	lastItems        []*model.Item
-	lastLastBuild    *time.Time
-	lastRequestError error
-	called           bool
+	err   error
+	feeds map[uint]struct {
+		items        []*model.Item
+		lastBuild    *time.Time
+		requestError error
+	}
+}
+
+func newMockStoreUpdater(err error) *mockStoreUpdater {
+	return &mockStoreUpdater{
+		err: err,
+		feeds: make(map[uint]struct {
+			items        []*model.Item
+			lastBuild    *time.Time
+			requestError error
+		}),
+	}
 }
 
 func (m *mockStoreUpdater) Update(feedID uint, items []*model.Item, lastBuild *time.Time, requestError error) error {
-	m.called = true
-	m.lastFeedID = feedID
-	m.lastItems = items
-	m.lastLastBuild = lastBuild
-	m.lastRequestError = requestError
+	if m.feeds == nil {
+		m.feeds = make(map[uint]struct {
+			items        []*model.Item
+			lastBuild    *time.Time
+			requestError error
+		})
+	}
+
+	m.feeds[feedID] = struct {
+		items        []*model.Item
+		lastBuild    *time.Time
+		requestError error
+	}{
+		items:        items,
+		lastBuild:    lastBuild,
+		requestError: requestError,
+	}
 
 	return m.err
+}
+
+// ReadItems returns the stored items for a given feedID
+func (m mockStoreUpdater) ReadItems(feedID uint) ([]*model.Item, error) {
+	if feed, ok := m.feeds[feedID]; ok {
+		return feed.items, nil
+	}
+	return nil, errors.New("not found")
+}
+
+// ReadLastBuild returns the stored last build time for a given feedID
+func (m mockStoreUpdater) ReadLastBuild(feedID uint) (*time.Time, error) {
+	if feed, ok := m.feeds[feedID]; ok {
+		return feed.lastBuild, nil
+	}
+	return nil, errors.New("not found")
+}
+
+// ReadRequestError returns the stored request error for a given feedID
+func (m mockStoreUpdater) ReadRequestError(feedID uint) (error, error) {
+	if feed, ok := m.feeds[feedID]; ok {
+		return feed.requestError, nil
+	}
+	return nil, errors.New("not found")
 }
 
 func TestSingleFeedPullerPull(t *testing.T) {
@@ -166,7 +213,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				shouldTimeout: tt.readFeedTimeout,
 			}
 
-			mockUpdate := &mockStoreUpdater{err: tt.updateFeedInStoreErr}
+			mockUpdate := newMockStoreUpdater(tt.updateFeedInStoreErr)
 
 			err := pull.NewSingleFeedPuller(mockRead.Read, mockUpdate.Update).Pull(context.Background(), &tt.feed)
 
@@ -185,11 +232,13 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			assert.Equal(t, expectedURL, mockRead.lastFeedURL)
 			assert.Equal(t, tt.feed.FeedRequestOptions, mockRead.lastOptions)
 
-			// Verify UpdateFeed call behavior
-			assert.True(t, mockUpdate.called, "UpdateFeed should be called")
-			assert.Equal(t, tt.feed.ID, mockUpdate.lastFeedID)
-			assert.Equal(t, tt.readFeedResult.Items, mockUpdate.lastItems)
-			assert.Equal(t, tt.readFeedResult.LastBuild, mockUpdate.lastLastBuild)
+			items, err := mockUpdate.ReadItems(tt.feed.ID)
+			require.NoError(t, err)
+			assert.Equal(t, tt.readFeedResult.Items, items)
+
+			lastBuild, err := mockUpdate.ReadLastBuild(tt.feed.ID)
+			require.NoError(t, err)
+			assert.Equal(t, tt.readFeedResult.LastBuild, lastBuild)
 
 			// Check that the correct error was passed to Update
 			var expectedRequestError error
@@ -198,7 +247,10 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			} else {
 				expectedRequestError = tt.readErr
 			}
-			assert.Equal(t, expectedRequestError, mockUpdate.lastRequestError)
+
+			requestError, err := mockUpdate.ReadRequestError(tt.feed.ID)
+			require.NoError(t, err)
+			assert.Equal(t, expectedRequestError, requestError)
 		})
 	}
 }
