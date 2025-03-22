@@ -22,17 +22,52 @@ type UpdateFeedInStoreFn func(feedID uint, items []*model.Item, lastBuild *time.
 
 type SingleFeedPuller struct {
 	readFeed ReadFeedItemsFn
+	repo     SingleFeedRepo
+}
+
+// NewSingleFeedPuller creates a new SingleFeedPuller with the given ReadFeedItemsFn and repository.
+func NewSingleFeedPuller(readFeed ReadFeedItemsFn, repo SingleFeedRepo) SingleFeedPuller {
+	return SingleFeedPuller{
+		readFeed: readFeed,
+		repo:     repo,
+	}
+}
+
+// NewSingleFeedRepoFromRepos creates a SingleFeedRepo implementation from separate feed and item repositories.
+func NewSingleFeedRepoFromRepos(feedID uint, feedRepo FeedRepo, itemRepo ItemRepo) SingleFeedRepo {
+	return &defaultSingleFeedRepo{
+		feedID:   feedID,
+		feedRepo: feedRepo,
+		itemRepo: itemRepo,
+	}
+}
+
+// defaultSingleFeedRepo is the default implementation of SingleFeedRepo
+type defaultSingleFeedRepo struct {
+	feedID   uint
 	feedRepo FeedRepo
 	itemRepo ItemRepo
 }
 
-// NewSingleFeedPuller creates a new SingleFeedPuller with the given ReadFeedItemsFn and repositories.
-func NewSingleFeedPuller(readFeed ReadFeedItemsFn, feedRepo FeedRepo, itemRepo ItemRepo) SingleFeedPuller {
-	return SingleFeedPuller{
-		readFeed: readFeed,
-		feedRepo: feedRepo,
-		itemRepo: itemRepo,
+func (r *defaultSingleFeedRepo) InsertItems(items []*model.Item) error {
+	// Set the correct feed ID for all items.
+	for _, item := range items {
+		item.FeedID = r.feedID
 	}
+	return r.itemRepo.Insert(items)
+}
+
+func (r *defaultSingleFeedRepo) RecordSuccess(lastBuild *time.Time) error {
+	return r.feedRepo.Update(r.feedID, &model.Feed{
+		LastBuild: lastBuild,
+		Failure:   ptr.To(""),
+	})
+}
+
+func (r *defaultSingleFeedRepo) RecordFailure(readErr error) error {
+	return r.feedRepo.Update(r.feedID, &model.Feed{
+		Failure: ptr.To(readErr.Error()),
+	})
 }
 
 func (p SingleFeedPuller) Pull(ctx context.Context, feed *model.Feed) error {
@@ -54,24 +89,20 @@ func (p SingleFeedPuller) Pull(ctx context.Context, feed *model.Feed) error {
 // If the fetch succeeds, it stores the latest build time and adds any new feed items.
 func (p SingleFeedPuller) updateFeedInStore(feedID uint, items []*model.Item, lastBuild *time.Time, requestError error) error {
 	if requestError != nil {
-		return p.feedRepo.Update(feedID, &model.Feed{
-			Failure: ptr.To(requestError.Error()),
-		})
+		return p.repo.RecordFailure(requestError)
 	}
 
 	if len(items) > 0 {
-		// Set the correct feed ID for all items.
-		for _, item := range items {
-			item.FeedID = feedID
-		}
-
-		if err := p.itemRepo.Insert(items); err != nil {
+		if err := p.repo.InsertItems(items); err != nil {
 			return err
 		}
 	}
 
-	return p.feedRepo.Update(feedID, &model.Feed{
-		LastBuild: lastBuild,
-		Failure:   ptr.To(""),
-	})
+	return p.repo.RecordSuccess(lastBuild)
+}
+
+type SingleFeedRepo interface {
+	InsertItems(items []*model.Item) error
+	RecordSuccess(lastBuild *time.Time) error
+	RecordFailure(readErr error) error
 }
