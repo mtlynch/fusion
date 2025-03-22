@@ -33,15 +33,6 @@ func NewSingleFeedPuller(readFeed ReadFeedItemsFn, repo SingleFeedRepo) SingleFe
 	}
 }
 
-// NewSingleFeedRepoFromRepos creates a SingleFeedRepo implementation from separate feed and item repositories.
-func NewSingleFeedRepoFromRepos(feedID uint, feedRepo FeedRepo, itemRepo ItemRepo) SingleFeedRepo {
-	return &defaultSingleFeedRepo{
-		feedID:   feedID,
-		feedRepo: feedRepo,
-		itemRepo: itemRepo,
-	}
-}
-
 // defaultSingleFeedRepo is the default implementation of SingleFeedRepo
 type defaultSingleFeedRepo struct {
 	feedID   uint

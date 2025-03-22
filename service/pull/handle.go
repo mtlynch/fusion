@@ -30,8 +30,12 @@ func (p *Puller) do(ctx context.Context, f *model.Feed, force bool) error {
 		}
 	}
 
-	singleFeedRepo := NewSingleFeedRepoFromRepos(f.ID, p.feedRepo, p.itemRepo)
-	return NewSingleFeedPuller(client.NewFeedClient().FetchItems, singleFeedRepo).Pull(ctx, f)
+	repo := defaultSingleFeedRepo{
+		feedID:   f.ID,
+		feedRepo: p.feedRepo,
+		itemRepo: p.itemRepo,
+	}
+	return NewSingleFeedPuller(client.NewFeedClient().FetchItems, &repo).Pull(ctx, f)
 }
 
 // FeedUpdateAction represents the action to take when considering checking a
