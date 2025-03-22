@@ -113,6 +113,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 		readFeedTimeout      bool
 		updateFeedInStoreErr error
 		expectedErrMsg       string
+		expectedStoredItems  []*model.Item
 	}{
 		{
 			description: "successful pull with no errors",
@@ -145,6 +146,22 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			},
 			readErr:              nil,
 			updateFeedInStoreErr: nil,
+			expectedStoredItems: []*model.Item{
+				{
+					Title:   ptr.To("Test Item 1"),
+					GUID:    ptr.To("guid1"),
+					Link:    ptr.To("https://example.com/item1"),
+					Content: ptr.To("Content 1"),
+					FeedID:  42,
+				},
+				{
+					Title:   ptr.To("Test Item 2"),
+					GUID:    ptr.To("guid2"),
+					Link:    ptr.To("https://example.com/item2"),
+					Content: ptr.To("Content 2"),
+					FeedID:  42,
+				},
+			},
 		},
 		{
 			description: "readFeed returns error",
@@ -153,9 +170,10 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
-			readFeedResult: client.FetchItemsResult{},
-			readErr:        errors.New("network error"),
-			expectedErrMsg: "",
+			readFeedResult:      client.FetchItemsResult{},
+			readErr:             errors.New("network error"),
+			expectedErrMsg:      "",
+			expectedStoredItems: nil,
 		},
 		{
 			description: "readFeed succeeds but updateFeedInStore fails",
@@ -179,6 +197,15 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			readErr:              nil,
 			updateFeedInStoreErr: errors.New("dummy database error"),
 			expectedErrMsg:       "dummy database error",
+			expectedStoredItems: []*model.Item{
+				{
+					Title:   ptr.To("Test Item 1"),
+					GUID:    ptr.To("guid1"),
+					Link:    ptr.To("https://example.com/item1"),
+					Content: ptr.To("Content 1"),
+					FeedID:  42,
+				},
+			},
 		},
 		{
 			description: "readFeed returns request error",
@@ -191,8 +218,9 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				LastBuild: mustParseTime("2025-01-01T12:00:00Z"),
 				Items:     nil,
 			},
-			readErr:        errors.New("HTTP 404"),
-			expectedErrMsg: "",
+			readErr:             errors.New("HTTP 404"),
+			expectedErrMsg:      "",
+			expectedStoredItems: nil,
 		},
 		{
 			description: "context timeout during readFeed",
@@ -201,9 +229,10 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
-			readFeedResult:  client.FetchItemsResult{},
-			readFeedTimeout: true,
-			expectedErrMsg:  "",
+			readFeedResult:      client.FetchItemsResult{},
+			readFeedTimeout:     true,
+			expectedErrMsg:      "",
+			expectedStoredItems: nil,
 		},
 	} {
 		t.Run(tt.description, func(t *testing.T) {
@@ -234,7 +263,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 
 			items, err := mockUpdate.ReadItems(tt.feed.ID)
 			require.NoError(t, err)
-			assert.Equal(t, tt.readFeedResult.Items, items)
+			assert.Equal(t, tt.expectedStoredItems, items)
 
 			lastBuild, err := mockUpdate.ReadLastBuild(tt.feed.ID)
 			require.NoError(t, err)
