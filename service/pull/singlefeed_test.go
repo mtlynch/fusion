@@ -99,12 +99,12 @@ func (m mockStoreUpdater) ReadRequestError(feedID uint) (error, error) {
 
 func TestSingleFeedPullerPull(t *testing.T) {
 	for _, tt := range []struct {
-		description          string
-		feed                 model.Feed
-		mockFeedReader       *mockFeedReader
-		updateFeedInStoreErr error
-		expectedErrMsg       string
-		expectedStoredItems  []*model.Item
+		description         string
+		feed                model.Feed
+		mockFeedReader      *mockFeedReader
+		mockDbErr           error
+		expectedErrMsg      string
+		expectedStoredItems []*model.Item
 	}{
 		{
 			description: "successful pull with no errors",
@@ -138,7 +138,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				},
 				err: nil,
 			},
-			updateFeedInStoreErr: nil,
+			mockDbErr: nil,
 			expectedStoredItems: []*model.Item{
 				{
 					Title:   ptr.To("Test Item 1"),
@@ -192,9 +192,9 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				},
 				err: nil,
 			},
-			updateFeedInStoreErr: errors.New("dummy database error"),
-			expectedErrMsg:       "dummy database error",
-			expectedStoredItems:  nil, // Don't check items when updateFeedInStore fails
+			mockDbErr:           errors.New("dummy database error"),
+			expectedErrMsg:      "dummy database error",
+			expectedStoredItems: nil, // Don't check items when updateFeedInStore fails
 		},
 		{
 			description: "readFeed returns request error",
@@ -229,7 +229,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 		},
 	} {
 		t.Run(tt.description, func(t *testing.T) {
-			mockUpdate := newMockStoreUpdater(tt.updateFeedInStoreErr)
+			mockUpdate := newMockStoreUpdater(tt.mockDbErr)
 
 			err := pull.NewSingleFeedPuller(tt.mockFeedReader.Read, mockUpdate.Update).Pull(context.Background(), &tt.feed)
 
@@ -244,7 +244,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			assert.Equal(t, tt.feed.FeedRequestOptions, tt.mockFeedReader.lastOptions)
 
 			// Only check stored data if updateFeedInStore succeeded.
-			if tt.updateFeedInStoreErr == nil {
+			if tt.mockDbErr == nil {
 				items, err := mockUpdate.ReadItems(tt.feed.ID)
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStoredItems, items)
