@@ -33,7 +33,16 @@ func NewSingleFeedPuller(readFeed ReadFeedItemsFn, updateFeedInStore UpdateFeedI
 }
 
 func (p SingleFeedPuller) Pull(ctx context.Context, feed *model.Feed) error {
+	logger := pullLogger.With("feed_id", feed.ID, "feed_name", feed.Name)
+
 	// We don't exit on error, as we want to record any error in the data store.
 	fetchResult, readErr := p.readFeed(ctx, *feed.Link, feed.FeedRequestOptions)
+
+	if readErr != nil {
+		logger.Info("fetched feed successfully")
+	} else {
+		logger.Infof("fetch failed: %v", readErr)
+	}
+
 	return p.updateFeedInStore(feed.ID, fetchResult.Items, fetchResult.LastBuild, readErr)
 }

@@ -31,13 +31,7 @@ func (p *Puller) do(ctx context.Context, f *model.Feed, force bool) error {
 		}
 	}
 
-	err := NewSingleFeedPuller(client.NewFeedClient().FetchItems, p.updateFeedInStore).Pull(ctx, f)
-	if err != nil {
-		return err
-	}
-
-	logger.Infof("fetched feed successfully")
-	return nil
+	return NewSingleFeedPuller(client.NewFeedClient().FetchItems, p.updateFeedInStore).Pull(ctx, f)
 }
 
 // updateFeedInStore implements UpdateFeedInStoreFn for SingleFeedPuller.
