@@ -71,7 +71,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 		readFeedErr          error
 		readFeedTimeout      bool
 		updateFeedInStoreErr error
-		expectedErr          string
+		expectedErrMsg       string
 	}{
 		{
 			description: "successful pull with no errors",
@@ -115,7 +115,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			readFeedResult: client.FetchItemsResult{},
 			readFeedErr:    errors.New("network error"),
 			// No error expected from Pull, as it should just record the error in the data store
-			expectedErr: "",
+			expectedErrMsg: "",
 		},
 		{
 			description: "readFeed succeeds but updateFeedInStore fails",
@@ -137,8 +137,8 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				},
 			},
 			readFeedErr:          nil,
-			updateFeedInStoreErr: errors.New("database error"),
-			expectedErr:          "database error",
+			updateFeedInStoreErr: errors.New("dummy database error"),
+			expectedErrMsg:       "dummy database error",
 		},
 		{
 			description: "readFeed returns request error",
@@ -154,7 +154,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			requestErr:  errors.New("HTTP 404"),
 			readFeedErr: nil,
 			// No error expected from Pull, as it should just record the error in the data store
-			expectedErr: "",
+			expectedErrMsg: "",
 		},
 		{
 			description: "context timeout during readFeed",
@@ -166,7 +166,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			readFeedResult:  client.FetchItemsResult{},
 			readFeedTimeout: true,
 			// No error expected from Pull, as it should just record the error in the data store
-			expectedErr: "",
+			expectedErrMsg: "",
 		},
 	} {
 		t.Run(tt.description, func(t *testing.T) {
@@ -183,9 +183,9 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			err := pull.NewSingleFeedPuller(mockRead.Read, mockUpdate.Update).Pull(context.Background(), tt.feed)
 
 			// Verify error behavior
-			if tt.expectedErr != "" {
+			if tt.expectedErrMsg != "" {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), tt.expectedErr)
+				assert.Contains(t, err.Error(), tt.expectedErrMsg)
 			} else {
 				require.NoError(t, err)
 			}
