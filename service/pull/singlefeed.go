@@ -40,7 +40,6 @@ func (p SingleFeedPuller) Pull(ctx context.Context, feed *model.Feed) error {
 
 	// We don't exit on error, as we want to record any error in the data store.
 	fetchResult, readErr := p.readFeed(ctx, *feed.Link, feed.FeedRequestOptions)
-
 	if readErr == nil {
 		logger.Infof("fetched %d items", len(fetchResult.Items))
 	} else {
