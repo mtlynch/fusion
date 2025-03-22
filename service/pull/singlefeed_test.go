@@ -32,13 +32,10 @@ func (m *mockFeedReader) Read(ctx context.Context, feedURL string, options model
 
 // mockSingleFeedRepo is a mock implementation of the SingleFeedRepo interface
 type mockSingleFeedRepo struct {
-	err           error
-	items         []*model.Item
-	lastBuild     *time.Time
-	requestError  error
-	insertCalled  bool
-	successCalled bool
-	failureCalled bool
+	err          error
+	items        []*model.Item
+	lastBuild    *time.Time
+	requestError error
 }
 
 func newMockSingleFeedRepo(err error) *mockSingleFeedRepo {
@@ -49,7 +46,6 @@ func newMockSingleFeedRepo(err error) *mockSingleFeedRepo {
 
 // InsertItems implements the SingleFeedRepo interface
 func (m *mockSingleFeedRepo) InsertItems(items []*model.Item) error {
-	m.insertCalled = true
 	if m.err != nil {
 		return m.err
 	}
@@ -59,7 +55,6 @@ func (m *mockSingleFeedRepo) InsertItems(items []*model.Item) error {
 
 // RecordSuccess implements the SingleFeedRepo interface
 func (m *mockSingleFeedRepo) RecordSuccess(lastBuild *time.Time) error {
-	m.successCalled = true
 	if m.err != nil {
 		return m.err
 	}
@@ -70,7 +65,6 @@ func (m *mockSingleFeedRepo) RecordSuccess(lastBuild *time.Time) error {
 
 // RecordFailure implements the SingleFeedRepo interface
 func (m *mockSingleFeedRepo) RecordFailure(readErr error) error {
-	m.failureCalled = true
 	if m.err != nil {
 		return m.err
 	}
@@ -195,19 +189,9 @@ func TestSingleFeedPullerPull(t *testing.T) {
 
 			// Only check stored data if updateFeedInStore succeeded.
 			if tt.mockDbErr == nil {
-				if tt.mockFeedReader.err != nil {
-					// Should have called RecordFailure
-					assert.True(t, mockRepo.failureCalled)
-					assert.Equal(t, tt.mockFeedReader.err, mockRepo.requestError)
-				} else {
-					// Should have called InsertItems and RecordSuccess
-					if len(tt.mockFeedReader.result.Items) > 0 {
-						assert.True(t, mockRepo.insertCalled)
-						assert.Equal(t, tt.expectedStoredItems, mockRepo.items)
-					}
-					assert.True(t, mockRepo.successCalled)
-					assert.Equal(t, tt.mockFeedReader.result.LastBuild, mockRepo.lastBuild)
-				}
+				assert.Equal(t, tt.mockFeedReader.err, mockRepo.requestError)
+				assert.Equal(t, tt.expectedStoredItems, mockRepo.items)
+				assert.Equal(t, tt.mockFeedReader.result.LastBuild, mockRepo.lastBuild)
 			}
 		})
 	}
