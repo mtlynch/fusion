@@ -7,10 +7,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/mmcdole/gofeed"
-
 	"github.com/0x2e/fusion/model"
 	"github.com/0x2e/fusion/pkg/httpx"
+	"github.com/mmcdole/gofeed"
 )
 
 type HttpRequestFn func(ctx context.Context, link string, options *model.FeedRequestOptions) (*http.Response, error)

@@ -38,7 +38,11 @@
 				<ul class="menu rounded-box sticky top-10 w-full">
 					{#each links as link}
 						<li>
-							<a href={link.hash} class={`${page.url.hash === link.hash ? 'font-semibold' : ''}`}>
+							<a
+								href={link.hash}
+								class="font-medium"
+								class:menu-active={page.url.hash === link.hash}
+							>
 								{link.label}
 							</a>
 						</li>

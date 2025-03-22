@@ -1,6 +1,7 @@
 package pull_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -10,6 +11,13 @@ import (
 	"github.com/0x2e/fusion/pkg/ptr"
 	"github.com/0x2e/fusion/service/pull"
 )
+
+// mockReadCloser is a mock io.ReadCloser that can return either data or an error.
+type mockReadCloser struct {
+	result string
+	errMsg string
+	reader *strings.Reader
+}
 
 func TestDecideFeedUpdateAction(t *testing.T) {
 	// Helper function to parse ISO8601 string to time.Time.

@@ -70,7 +70,7 @@
 			<a
 				href="https://github.com/0x2E/fusion"
 				target="_blank"
-				class="btn btn-ghost flex items-center justify-start gap-2"
+				class="btn btn-ghost hover:bg-base-content/10 flex items-center justify-start gap-2"
 			>
 				<img src="/icon-96.png" alt="icon" class="w-6" />
 				<span class="text-lg font-bold">Fusion</span>
@@ -84,7 +84,7 @@
 					onclick={() => {
 						toggleShow();
 					}}
-					class="btn btn-sm btn-ghost bg-base-100"
+					class="btn btn-sm bg-base-100 hover:bg-base-content/10"
 				>
 					<CirclePlus class="size-4" />
 					<span>Add Feeds</span>
@@ -111,11 +111,10 @@
 							<span class="line-clamp-1">{group.name}</span>
 						</summary>
 						<ul>
-							{#each feeds
-								.filter((v) => v.group.id === group.id)
-								.sort((a, b) => a.name.localeCompare(b.name)) as feed}
+							{#each feeds.filter((v) => v.group.id === group.id) as feed}
+								{@const domain = new URL(feed.link).hostname}
 								{@const textColor = feed.suspended
-									? 'text-neutral-content/60'
+									? 'text-base-content/60'
 									: feed.failure
 										? 'text-error'
 										: ''}
