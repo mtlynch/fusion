@@ -11,6 +11,8 @@ import (
 
 func (p *Puller) do(ctx context.Context, f *model.Feed, force bool) error {
 	logger := pullLogger.With("feed_id", f.ID, "feed_name", f.Name)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 
 	updateAction, skipReason := DecideFeedUpdateAction(f, time.Now())
 	if skipReason == &SkipReasonSuspended {

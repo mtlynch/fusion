@@ -22,14 +22,12 @@ type mockFeedReader struct {
 	err           error
 	lastFeedURL   string
 	lastOptions   model.FeedRequestOptions
-	lastContext   context.Context
 	shouldTimeout bool
 }
 
 func (m *mockFeedReader) Read(ctx context.Context, feedURL string, options model.FeedRequestOptions) (client.FetchItemsResult, error) {
 	m.lastFeedURL = feedURL
 	m.lastOptions = options
-	m.lastContext = ctx
 
 	// Simulate timeout if configured
 	if m.shouldTimeout {
@@ -199,11 +197,6 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			}
 			assert.Equal(t, expectedURL, mockRead.lastFeedURL)
 			assert.Equal(t, tt.feed.FeedRequestOptions, mockRead.lastOptions)
-
-			// Verify context has timeout set
-			deadline, hasDeadline := mockRead.lastContext.Deadline()
-			assert.True(t, hasDeadline, "Context should have a deadline")
-			assert.True(t, deadline.After(time.Now()), "Deadline should be in the future")
 
 			// Verify UpdateFeed call behavior
 			assert.True(t, mockUpdate.called, "UpdateFeed should be called")
