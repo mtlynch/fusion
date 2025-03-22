@@ -11,6 +11,7 @@ import (
 
 	"github.com/0x2e/fusion/model"
 	"github.com/0x2e/fusion/pkg/ptr"
+	"github.com/0x2e/fusion/repo"
 	"github.com/0x2e/fusion/service/pull"
 	"github.com/0x2e/fusion/service/pull/client"
 )
@@ -30,20 +31,22 @@ func (m *mockFeedReader) Read(ctx context.Context, feedURL string, options model
 	return m.result, m.err
 }
 
-// mockStoreUpdater is a mock implementation of UpdateFeedInStoreFn
-type mockStoreUpdater struct {
+// mockRepo is a mock implementation of both FeedRepo and ItemRepo interfaces
+type mockRepo struct {
 	err   error
 	feeds map[uint]struct {
+		feed         *model.Feed
 		items        []*model.Item
 		lastBuild    *time.Time
 		requestError error
 	}
 }
 
-func newMockStoreUpdater(err error) *mockStoreUpdater {
-	return &mockStoreUpdater{
+func newMockRepo(err error) *mockRepo {
+	return &mockRepo{
 		err: err,
 		feeds: make(map[uint]struct {
+			feed         *model.Feed
 			items        []*model.Item
 			lastBuild    *time.Time
 			requestError error
@@ -51,30 +54,99 @@ func newMockStoreUpdater(err error) *mockStoreUpdater {
 	}
 }
 
-func (m *mockStoreUpdater) Update(feedID uint, items []*model.Item, lastBuild *time.Time, requestError error) error {
+// FeedRepo interface methods
+func (m *mockRepo) List(filter *repo.FeedListFilter) ([]*model.Feed, error) {
+	return nil, nil // Not used in tests
+}
+
+func (m *mockRepo) Get(id uint) (*model.Feed, error) {
+	if feed, ok := m.feeds[id]; ok {
+		return feed.feed, nil
+	}
+	return nil, errors.New("not found")
+}
+
+func (m *mockRepo) Update(id uint, feed *model.Feed) error {
 	if m.feeds == nil {
 		m.feeds = make(map[uint]struct {
+			feed         *model.Feed
 			items        []*model.Item
 			lastBuild    *time.Time
 			requestError error
 		})
 	}
 
-	m.feeds[feedID] = struct {
-		items        []*model.Item
-		lastBuild    *time.Time
-		requestError error
-	}{
-		items:        items,
-		lastBuild:    lastBuild,
-		requestError: requestError,
+	if _, ok := m.feeds[id]; !ok {
+		m.feeds[id] = struct {
+			feed         *model.Feed
+			items        []*model.Item
+			lastBuild    *time.Time
+			requestError error
+		}{
+			feed: feed,
+		}
+	} else {
+		current := m.feeds[id]
+		current.feed = feed
+		m.feeds[id] = current
+	}
+
+	// Store lastBuild and failure for test verification
+	if feed.LastBuild != nil {
+		current := m.feeds[id]
+		current.lastBuild = feed.LastBuild
+		m.feeds[id] = current
+	}
+
+	if feed.Failure != nil {
+		var requestErr error
+		if *feed.Failure != "" {
+			requestErr = errors.New(*feed.Failure)
+		}
+		current := m.feeds[id]
+		current.requestError = requestErr
+		m.feeds[id] = current
+	}
+
+	return m.err
+}
+
+// ItemRepo interface methods
+func (m *mockRepo) Insert(items []*model.Item) error {
+	if len(items) == 0 {
+		return nil
+	}
+
+	feedID := items[0].FeedID
+	if m.feeds == nil {
+		m.feeds = make(map[uint]struct {
+			feed         *model.Feed
+			items        []*model.Item
+			lastBuild    *time.Time
+			requestError error
+		})
+	}
+
+	if _, ok := m.feeds[feedID]; !ok {
+		m.feeds[feedID] = struct {
+			feed         *model.Feed
+			items        []*model.Item
+			lastBuild    *time.Time
+			requestError error
+		}{
+			items: items,
+		}
+	} else {
+		current := m.feeds[feedID]
+		current.items = items
+		m.feeds[feedID] = current
 	}
 
 	return m.err
 }
 
 // ReadItems returns the stored items for a given feedID
-func (m mockStoreUpdater) ReadItems(feedID uint) ([]*model.Item, error) {
+func (m *mockRepo) ReadItems(feedID uint) ([]*model.Item, error) {
 	if feed, ok := m.feeds[feedID]; ok {
 		return feed.items, nil
 	}
@@ -82,7 +154,7 @@ func (m mockStoreUpdater) ReadItems(feedID uint) ([]*model.Item, error) {
 }
 
 // ReadLastBuild returns the stored last build time for a given feedID
-func (m mockStoreUpdater) ReadLastBuild(feedID uint) (*time.Time, error) {
+func (m *mockRepo) ReadLastBuild(feedID uint) (*time.Time, error) {
 	if feed, ok := m.feeds[feedID]; ok {
 		return feed.lastBuild, nil
 	}
@@ -90,7 +162,7 @@ func (m mockStoreUpdater) ReadLastBuild(feedID uint) (*time.Time, error) {
 }
 
 // ReadRequestError returns the stored request error for a given feedID
-func (m mockStoreUpdater) ReadRequestError(feedID uint) (error, error) {
+func (m *mockRepo) ReadRequestError(feedID uint) (error, error) {
 	if feed, ok := m.feeds[feedID]; ok {
 		return feed.requestError, nil
 	}
@@ -197,9 +269,9 @@ func TestSingleFeedPullerPull(t *testing.T) {
 		},
 	} {
 		t.Run(tt.description, func(t *testing.T) {
-			mockUpdate := newMockStoreUpdater(tt.mockDbErr)
+			mockRepo := newMockRepo(tt.mockDbErr)
 
-			err := pull.NewSingleFeedPuller(tt.mockFeedReader.Read, mockUpdate.Update).Pull(context.Background(), &tt.feed)
+			err := pull.NewSingleFeedPuller(tt.mockFeedReader.Read, mockRepo, mockRepo).Pull(context.Background(), &tt.feed)
 
 			if tt.expectedErrMsg != "" {
 				require.Error(t, err)
@@ -213,16 +285,16 @@ func TestSingleFeedPullerPull(t *testing.T) {
 
 			// Only check stored data if updateFeedInStore succeeded.
 			if tt.mockDbErr == nil {
-				items, err := mockUpdate.ReadItems(tt.feed.ID)
+				items, err := mockRepo.ReadItems(tt.feed.ID)
 				require.NoError(t, err)
 				assert.Equal(t, tt.expectedStoredItems, items)
 
-				lastBuild, err := mockUpdate.ReadLastBuild(tt.feed.ID)
+				lastBuild, err := mockRepo.ReadLastBuild(tt.feed.ID)
 				require.NoError(t, err)
 				assert.Equal(t, tt.mockFeedReader.result.LastBuild, lastBuild)
 
 				// Check that the correct error was passed to Update
-				requestError, err := mockUpdate.ReadRequestError(tt.feed.ID)
+				requestError, err := mockRepo.ReadRequestError(tt.feed.ID)
 				require.NoError(t, err)
 				assert.Equal(t, tt.mockFeedReader.err, requestError)
 			}

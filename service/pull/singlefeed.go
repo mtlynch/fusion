@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/0x2e/fusion/model"
+	"github.com/0x2e/fusion/pkg/ptr"
 	"github.com/0x2e/fusion/service/pull/client"
 )
 
@@ -20,15 +21,17 @@ type ReadFeedItemsFn func(ctx context.Context, feedURL string, options model.Fee
 type UpdateFeedInStoreFn func(feedID uint, items []*model.Item, lastBuild *time.Time, requestError error) error
 
 type SingleFeedPuller struct {
-	readFeed          ReadFeedItemsFn
-	updateFeedInStore UpdateFeedInStoreFn
+	readFeed ReadFeedItemsFn
+	feedRepo FeedRepo
+	itemRepo ItemRepo
 }
 
-// NewSingleFeedPuller creates a new SingleFeedPuller with the given ReadFeedItemsFn and UpdateFeedInStoreFn.
-func NewSingleFeedPuller(readFeed ReadFeedItemsFn, updateFeedInStore UpdateFeedInStoreFn) SingleFeedPuller {
+// NewSingleFeedPuller creates a new SingleFeedPuller with the given ReadFeedItemsFn and repositories.
+func NewSingleFeedPuller(readFeed ReadFeedItemsFn, feedRepo FeedRepo, itemRepo ItemRepo) SingleFeedPuller {
 	return SingleFeedPuller{
-		readFeed:          readFeed,
-		updateFeedInStore: updateFeedInStore,
+		readFeed: readFeed,
+		feedRepo: feedRepo,
+		itemRepo: itemRepo,
 	}
 }
 
@@ -38,7 +41,7 @@ func (p SingleFeedPuller) Pull(ctx context.Context, feed *model.Feed) error {
 	// We don't exit on error, as we want to record any error in the data store.
 	fetchResult, readErr := p.readFeed(ctx, *feed.Link, feed.FeedRequestOptions)
 
-	if readErr != nil {
+	if readErr == nil {
 		logger.Info("fetched feed successfully")
 		logger.Infof("fetched %d items", len(fetchResult.Items))
 	} else {
@@ -46,4 +49,31 @@ func (p SingleFeedPuller) Pull(ctx context.Context, feed *model.Feed) error {
 	}
 
 	return p.updateFeedInStore(feed.ID, fetchResult.Items, fetchResult.LastBuild, readErr)
+}
+
+// updateFeedInStore saves the result of a feed fetch to the data store.
+// If the fetch failed, it records that in the data store.
+// If the fetch succeeds, it stores the latest build time and adds any new feed items.
+func (p SingleFeedPuller) updateFeedInStore(feedID uint, items []*model.Item, lastBuild *time.Time, requestError error) error {
+	if requestError != nil {
+		return p.feedRepo.Update(feedID, &model.Feed{
+			Failure: ptr.To(requestError.Error()),
+		})
+	}
+
+	if len(items) > 0 {
+		// Set the correct feed ID for all items.
+		for _, item := range items {
+			item.FeedID = feedID
+		}
+
+		if err := p.itemRepo.Insert(items); err != nil {
+			return err
+		}
+	}
+
+	return p.feedRepo.Update(feedID, &model.Feed{
+		LastBuild: lastBuild,
+		Failure:   ptr.To(""),
+	})
 }
