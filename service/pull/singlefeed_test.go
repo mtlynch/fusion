@@ -253,14 +253,6 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			assert.Equal(t, expectedURL, mockRead.lastFeedURL)
 			assert.Equal(t, tt.feed.FeedRequestOptions, mockRead.lastOptions)
 
-			// Check that the correct error was passed to Update
-			var expectedRequestError error
-			if tt.readFeedTimeout {
-				expectedRequestError = context.DeadlineExceeded
-			} else {
-				expectedRequestError = tt.readErr
-			}
-
 			// Only check stored data if updateFeedInStore succeeded.
 			if tt.updateFeedInStoreErr == nil {
 				items, err := mockUpdate.ReadItems(tt.feed.ID)
@@ -271,6 +263,13 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, tt.readFeedResult.LastBuild, lastBuild)
 
+				// Check that the correct error was passed to Update
+				var expectedRequestError error
+				if tt.readFeedTimeout {
+					expectedRequestError = context.DeadlineExceeded
+				} else {
+					expectedRequestError = tt.readErr
+				}
 				requestError, err := mockUpdate.ReadRequestError(tt.feed.ID)
 				require.NoError(t, err)
 				assert.Equal(t, expectedRequestError, requestError)
