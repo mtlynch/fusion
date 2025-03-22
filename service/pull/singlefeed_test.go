@@ -44,7 +44,6 @@ func newMockSingleFeedRepo(err error) *mockSingleFeedRepo {
 	}
 }
 
-// InsertItems implements the SingleFeedRepo interface
 func (m *mockSingleFeedRepo) InsertItems(items []*model.Item) error {
 	if m.err != nil {
 		return m.err
@@ -53,7 +52,6 @@ func (m *mockSingleFeedRepo) InsertItems(items []*model.Item) error {
 	return nil
 }
 
-// RecordSuccess implements the SingleFeedRepo interface
 func (m *mockSingleFeedRepo) RecordSuccess(lastBuild *time.Time) error {
 	if m.err != nil {
 		return m.err
@@ -63,7 +61,6 @@ func (m *mockSingleFeedRepo) RecordSuccess(lastBuild *time.Time) error {
 	return nil
 }
 
-// RecordFailure implements the SingleFeedRepo interface
 func (m *mockSingleFeedRepo) RecordFailure(readErr error) error {
 	if m.err != nil {
 		return m.err
@@ -172,7 +169,6 @@ func TestSingleFeedPullerPull(t *testing.T) {
 		},
 	} {
 		t.Run(tt.description, func(t *testing.T) {
-			// Create a mock SingleFeedRepo
 			mockRepo := newMockSingleFeedRepo(tt.mockDbErr)
 
 			err := pull.NewSingleFeedPuller(tt.mockFeedReader.Read, mockRepo).Pull(context.Background(), &tt.feed)
