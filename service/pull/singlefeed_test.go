@@ -60,7 +60,7 @@ func (m *mockStoreUpdater) Update(feedID uint, items []*model.Item, lastBuild *t
 func TestSingleFeedPullerPull(t *testing.T) {
 	for _, tt := range []struct {
 		description          string
-		feed                 *model.Feed
+		feed                 model.Feed
 		readFeedResult       client.FetchItemsResult
 		readErr              error
 		readFeedTimeout      bool
@@ -69,7 +69,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 	}{
 		{
 			description: "successful pull with no errors",
-			feed: &model.Feed{
+			feed: model.Feed{
 				ID:   42,
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
@@ -101,7 +101,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 		},
 		{
 			description: "readFeed returns error",
-			feed: &model.Feed{
+			feed: model.Feed{
 				ID:   42,
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
@@ -112,7 +112,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 		},
 		{
 			description: "readFeed succeeds but updateFeedInStore fails",
-			feed: &model.Feed{
+			feed: model.Feed{
 				ID:   42,
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
@@ -135,7 +135,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 		},
 		{
 			description: "readFeed returns request error",
-			feed: &model.Feed{
+			feed: model.Feed{
 				ID:   42,
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
@@ -149,7 +149,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 		},
 		{
 			description: "context timeout during readFeed",
-			feed: &model.Feed{
+			feed: model.Feed{
 				ID:   42,
 				Name: ptr.To("Test Feed"),
 				Link: ptr.To("https://example.com/feed.xml"),
@@ -168,7 +168,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 
 			mockUpdate := &mockStoreUpdater{err: tt.updateFeedInStoreErr}
 
-			err := pull.NewSingleFeedPuller(mockRead.Read, mockUpdate.Update).Pull(context.Background(), tt.feed)
+			err := pull.NewSingleFeedPuller(mockRead.Read, mockUpdate.Update).Pull(context.Background(), &tt.feed)
 
 			if tt.expectedErrMsg != "" {
 				require.Error(t, err)
