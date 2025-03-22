@@ -78,7 +78,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				},
 			},
 			readFeedResult: client.FetchItemsResult{
-				LastBuild: ptr.To(time.Now()),
+				LastBuild: mustParseTime("2025-01-01T12:00:00Z"),
 				Items: []*model.Item{
 					{
 						Title:   ptr.To("Test Item 1"),
@@ -108,7 +108,6 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			},
 			readFeedResult: client.FetchItemsResult{},
 			readErr:        errors.New("network error"),
-			// No error expected from Pull, as it should just record the error in the data store
 			expectedErrMsg: "",
 		},
 		{
@@ -119,7 +118,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
 			readFeedResult: client.FetchItemsResult{
-				LastBuild: ptr.To(time.Now()),
+				LastBuild: mustParseTime("2025-01-01T12:00:00Z"),
 				Items: []*model.Item{
 					{
 						Title:   ptr.To("Test Item 1"),
@@ -142,11 +141,10 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
 			readFeedResult: client.FetchItemsResult{
-				LastBuild: ptr.To(time.Now()),
+				LastBuild: mustParseTime("2025-01-01T12:00:00Z"),
 				Items:     nil,
 			},
-			readErr: errors.New("HTTP 404"),
-			// No error expected from Pull, as it should just record the error in the data store
+			readErr:        errors.New("HTTP 404"),
 			expectedErrMsg: "",
 		},
 		{
@@ -158,12 +156,10 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			},
 			readFeedResult:  client.FetchItemsResult{},
 			readFeedTimeout: true,
-			// No error expected from Pull, as it should just record the error in the data store
-			expectedErrMsg: "",
+			expectedErrMsg:  "",
 		},
 	} {
 		t.Run(tt.description, func(t *testing.T) {
-			// Set up mocks
 			mockRead := &mockFeedReader{
 				result:        tt.readFeedResult,
 				err:           tt.readErr,
@@ -174,7 +170,6 @@ func TestSingleFeedPullerPull(t *testing.T) {
 
 			err := pull.NewSingleFeedPuller(mockRead.Read, mockUpdate.Update).Pull(context.Background(), tt.feed)
 
-			// Verify error behavior
 			if tt.expectedErrMsg != "" {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.expectedErrMsg)
@@ -206,4 +201,12 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			assert.Equal(t, expectedRequestError, mockUpdate.lastRequestError)
 		})
 	}
+}
+
+func mustParseTime(iso8601 string) *time.Time {
+	t, err := time.Parse(time.RFC3339, iso8601)
+	if err != nil {
+		panic(err)
+	}
+	return &t
 }
