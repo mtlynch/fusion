@@ -18,7 +18,6 @@ import (
 // mockFeedReader is a mock implementation of ReadFeedItemsFn
 type mockFeedReader struct {
 	result        client.FetchItemsResult
-	requestErr    error
 	err           error
 	lastFeedURL   string
 	lastOptions   model.FeedRequestOptions
@@ -35,11 +34,7 @@ func (m *mockFeedReader) Read(ctx context.Context, feedURL string, options model
 		return client.FetchItemsResult{}, context.DeadlineExceeded
 	}
 
-	if m.err != nil {
-		return client.FetchItemsResult{}, m.err
-	}
-
-	return m.result, m.requestErr
+	return m.result, m.err
 }
 
 // mockStoreUpdater is a mock implementation of UpdateFeedInStoreFn
@@ -67,8 +62,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 		description          string
 		feed                 *model.Feed
 		readFeedResult       client.FetchItemsResult
-		requestErr           error
-		readFeedErr          error
+		readErr              error
 		readFeedTimeout      bool
 		updateFeedInStoreErr error
 		expectedErrMsg       string
@@ -102,7 +96,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 					},
 				},
 			},
-			readFeedErr:          nil,
+			readErr:              nil,
 			updateFeedInStoreErr: nil,
 		},
 		{
@@ -113,7 +107,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				Link: ptr.To("https://example.com/feed.xml"),
 			},
 			readFeedResult: client.FetchItemsResult{},
-			readFeedErr:    errors.New("network error"),
+			readErr:        errors.New("network error"),
 			// No error expected from Pull, as it should just record the error in the data store
 			expectedErrMsg: "",
 		},
@@ -136,7 +130,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 					},
 				},
 			},
-			readFeedErr:          nil,
+			readErr:              nil,
 			updateFeedInStoreErr: errors.New("dummy database error"),
 			expectedErrMsg:       "dummy database error",
 		},
@@ -151,8 +145,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				LastBuild: ptr.To(time.Now()),
 				Items:     nil,
 			},
-			requestErr:  errors.New("HTTP 404"),
-			readFeedErr: nil,
+			readErr: errors.New("HTTP 404"),
 			// No error expected from Pull, as it should just record the error in the data store
 			expectedErrMsg: "",
 		},
@@ -173,8 +166,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			// Set up mocks
 			mockRead := &mockFeedReader{
 				result:        tt.readFeedResult,
-				requestErr:    tt.requestErr,
-				err:           tt.readFeedErr,
+				err:           tt.readErr,
 				shouldTimeout: tt.readFeedTimeout,
 			}
 
@@ -208,10 +200,8 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			var expectedRequestError error
 			if tt.readFeedTimeout {
 				expectedRequestError = context.DeadlineExceeded
-			} else if tt.readFeedErr != nil {
-				expectedRequestError = tt.readFeedErr
 			} else {
-				expectedRequestError = tt.requestErr
+				expectedRequestError = tt.readErr
 			}
 			assert.Equal(t, expectedRequestError, mockUpdate.lastRequestError)
 		})
