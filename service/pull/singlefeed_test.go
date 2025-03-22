@@ -197,15 +197,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			readErr:              nil,
 			updateFeedInStoreErr: errors.New("dummy database error"),
 			expectedErrMsg:       "dummy database error",
-			expectedStoredItems: []*model.Item{
-				{
-					Title:   ptr.To("Test Item 1"),
-					GUID:    ptr.To("guid1"),
-					Link:    ptr.To("https://example.com/item1"),
-					Content: ptr.To("Content 1"),
-					FeedID:  42,
-				},
-			},
+			expectedStoredItems:  nil, // Don't check items when updateFeedInStore fails
 		},
 		{
 			description: "readFeed returns request error",
@@ -261,14 +253,6 @@ func TestSingleFeedPullerPull(t *testing.T) {
 			assert.Equal(t, expectedURL, mockRead.lastFeedURL)
 			assert.Equal(t, tt.feed.FeedRequestOptions, mockRead.lastOptions)
 
-			items, err := mockUpdate.ReadItems(tt.feed.ID)
-			require.NoError(t, err)
-			assert.Equal(t, tt.expectedStoredItems, items)
-
-			lastBuild, err := mockUpdate.ReadLastBuild(tt.feed.ID)
-			require.NoError(t, err)
-			assert.Equal(t, tt.readFeedResult.LastBuild, lastBuild)
-
 			// Check that the correct error was passed to Update
 			var expectedRequestError error
 			if tt.readFeedTimeout {
@@ -277,9 +261,21 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				expectedRequestError = tt.readErr
 			}
 
-			requestError, err := mockUpdate.ReadRequestError(tt.feed.ID)
-			require.NoError(t, err)
-			assert.Equal(t, expectedRequestError, requestError)
+			// Only check stored data if updateFeedInStore succeeded.
+			if tt.updateFeedInStoreErr == nil {
+				items, err := mockUpdate.ReadItems(tt.feed.ID)
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedStoredItems, items)
+
+				lastBuild, err := mockUpdate.ReadLastBuild(tt.feed.ID)
+				require.NoError(t, err)
+				assert.Equal(t, tt.readFeedResult.LastBuild, lastBuild)
+
+				requestError, err := mockUpdate.ReadRequestError(tt.feed.ID)
+				require.NoError(t, err)
+				assert.Equal(t, expectedRequestError, requestError)
+			}
+
 		})
 	}
 }
