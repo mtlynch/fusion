@@ -245,12 +245,7 @@ func TestSingleFeedPullerPull(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			// Verify ReadFeed was called with correct parameters
-			var expectedURL string
-			if tt.feed.Link != nil {
-				expectedURL = *tt.feed.Link
-			}
-			assert.Equal(t, expectedURL, mockRead.lastFeedURL)
+			assert.Equal(t, *tt.feed.Link, mockRead.lastFeedURL)
 			assert.Equal(t, tt.feed.FeedRequestOptions, mockRead.lastOptions)
 
 			// Only check stored data if updateFeedInStore succeeded.
