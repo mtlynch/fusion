@@ -8,6 +8,8 @@ import (
 	"github.com/0x2e/fusion/model"
 )
 
+const UserAgentString = "fusion/1.0"
+
 var globalClient = newClient()
 
 // SendHTTPRequestFn is a function type for sending HTTP requests, matching
@@ -39,7 +41,7 @@ func FusionRequestWithRequestSender(ctx context.Context, sendRequest SendHTTPReq
 		return nil, err
 	}
 	req.Close = true
-	req.Header.Add("User-Agent", "fusion/1.0")
+	req.Header.Add("User-Agent", UserAgentString)
 
 	return sendRequest(req)
 }
