@@ -10,10 +10,11 @@ import (
 
 var globalClient = newClient()
 
-// SendHTTPRequestFn is a function type for sending HTTP requests, matching http.Client's Do method
+// SendHTTPRequestFn is a function type for sending HTTP requests, matching
+// http.Client's Do method.
 type SendHTTPRequestFn func(req *http.Request) (*http.Response, error)
 
-// FusionRequest makes an HTTP request using the global client
+// FusionRequest makes an HTTP request using the global client.
 func FusionRequest(ctx context.Context, link string, options model.FeedRequestOptions) (*http.Response, error) {
 	client := globalClient
 
@@ -30,7 +31,8 @@ func FusionRequest(ctx context.Context, link string, options model.FeedRequestOp
 	return FusionRequestWithRequestSender(ctx, client.Do, link, options)
 }
 
-// FusionRequestWithRequestSender makes an HTTP request using the provided request sender function
+// FusionRequestWithRequestSender makes an HTTP request using the provided
+// request sender function.
 func FusionRequestWithRequestSender(ctx context.Context, sendRequest SendHTTPRequestFn, link string, options model.FeedRequestOptions) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", link, nil)
 	if err != nil {
