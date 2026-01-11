@@ -1,0 +1,43 @@
+{{ define "item-list.html" }}
+<div id="item-list">
+  {{ if .Loading }}
+    <div class="flex flex-col gap-1">
+      <div class="skeleton h-10 w-full rounded"></div>
+      <div class="skeleton h-10 w-full rounded"></div>
+      <div class="skeleton h-10 w-full rounded"></div>
+      <div class="skeleton h-10 w-full rounded"></div>
+      <div class="skeleton h-10 w-full rounded"></div>
+    </div>
+  {{ else }}
+    <ul>
+      {{ range .Rows }}
+        {{ template "item-row.html" . }}
+      {{ else }}
+        {{ $.EmptyMessage }}
+      {{ end }}
+    </ul>
+
+    {{ if .Pagination.Show }}
+      <div class="mt-6 flex w-full flex-wrap justify-center gap-4">
+        {{ template "pagination.html" .Pagination }}
+        <form method="get" action="{{ .ListPath }}" class="join">
+          {{ range .Filter.HiddenFields }}
+            <input type="hidden" name="{{ .Name }}" value="{{ .Value }}" />
+          {{ end }}
+          <input
+            type="number"
+            name="page_size"
+            value="{{ .Filter.PageSize }}"
+            min="10"
+            step="10"
+            class="input join-item w-16"
+          />
+          <span class="join-item bg-base-300 text-base-content/60 flex items-center px-2 text-sm">
+            Per page
+          </span>
+        </form>
+      </div>
+    {{ end }}
+  {{ end }}
+</div>
+{{ end }}

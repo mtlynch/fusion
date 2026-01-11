@@ -1,0 +1,88 @@
+{{ define "sidebar.html" }}
+<div class="flex h-full flex-col justify-between">
+  <div>
+    <div class="flex items-center justify-between gap-2">
+      <a
+        href="https://github.com/0x2E/fusion"
+        target="_blank"
+        class="btn btn-ghost flex items-center justify-start gap-2"
+      >
+        <img src="/icon-96.png" alt="icon" class="w-6" />
+        <span class="text-lg font-bold">Fusion</span>
+      </a>
+      {{ if .ShowThemeToggle }}
+      <label class="btn btn-ghost btn-square swap swap-rotate hover:bg-neutral" aria-label="Toggle theme">
+        <input type="checkbox" class="theme-controller" value="dark" {{ if .ThemeIsDark }}checked{{ end }} />
+        <i class="fa-solid fa-sun swap-off" aria-hidden="true"></i>
+        <i class="fa-solid fa-moon swap-on" aria-hidden="true"></i>
+      </label>
+      {{ end }}
+    </div>
+
+    <ul class="menu mt-4 w-full font-medium">
+      <li>
+        <a href="/feeds/import" class="btn btn-sm btn-ghost bg-base-100">
+          <span>Import feeds</span>
+        </a>
+      </li>
+    </ul>
+
+    <ul class="menu w-full font-medium">
+      {{ range .SystemLinks }}
+        <li>
+          <a href="{{ .URL }}" class="{{ if .Active }}menu-active{{ end }}">{{ .Label }}</a>
+        </li>
+      {{ end }}
+    </ul>
+
+    <ul class="menu w-full">
+      <li class="menu-title text-xs">Feeds</li>
+      {{ range .Groups }}
+        <li class="p-0">
+          <details {{ if .Open }}open{{ end }}>
+            <summary class="gap-2">
+              <span class="line-clamp-1">{{ .Name }}</span>
+            </summary>
+            <ul>
+              {{ range .Feeds }}
+                <li>
+                  <a href="/feeds/{{ .ID }}" class="{{ if .Active }}menu-active{{ end }}">
+                    <div class="avatar">
+                      <div class="size-4 rounded-full">
+                        <img src="{{ .FaviconURL }}" alt="{{ .Name }}" loading="lazy" />
+                      </div>
+                    </div>
+                    <span class="line-clamp-1 grow {{ .StatusClass }}">{{ .Name }}</span>
+                    {{ if gt .UnreadCount 0 }}
+                      <span class="text-base-content/60 text-xs">{{ .UnreadCount }}</span>
+                    {{ end }}
+                  </a>
+                </li>
+              {{ end }}
+            </ul>
+          </details>
+        </li>
+      {{ end }}
+    </ul>
+  </div>
+
+  <div class="mt-8">
+    <div class="w-full">
+      <div class="bg-base-100 rounded-box w-full p-2 shadow-sm">
+        <ul class="menu w-full p-0">
+          <li>
+            <form method="post" action="/logout">
+              <button type="submit" class="hover:text-error w-full">Logout</button>
+            </form>
+          </li>
+        </ul>
+        {{ if .Version }}
+        <div class="bg-base-200 mt-2 p-2">
+          <p class="text-base-content/60 text-xs">{{ .Version }}</p>
+        </div>
+        {{ end }}
+      </div>
+    </div>
+  </div>
+</div>
+{{ end }}

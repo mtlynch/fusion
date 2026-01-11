@@ -10,9 +10,9 @@ import (
 
 	"github.com/0x2e/fusion/auth"
 	"github.com/0x2e/fusion/conf"
-	"github.com/0x2e/fusion/frontend"
 	"github.com/0x2e/fusion/repo"
 	"github.com/0x2e/fusion/server"
+	"github.com/0x2e/fusion/web"
 
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
@@ -53,17 +53,18 @@ func Run(params Params) {
 	r.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogStatus:   true,
 		LogURI:      true,
+		LogMethod:   true,
 		LogError:    true,
 		HandleError: true, // forwards error to the global error handler, so it can decide appropriate status code
 		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
-			if !strings.HasPrefix(v.URI, "/api") {
+			if v.Status < http.StatusBadRequest {
 				return nil
 			}
 			if v.Error == nil {
-				slog.Info("REQUEST", "uri", v.URI, "status", v.Status)
-			} else {
-				slog.Error(v.Error.Error(), "uri", v.URI, "status", v.Status)
+				slog.Info("REQUEST_FAILED", "method", v.Method, "uri", v.URI, "status", v.Status)
+				return nil
 			}
+			slog.Error(v.Error.Error(), "method", v.Method, "uri", v.URI, "status", v.Status)
 			return nil
 		},
 	}))
@@ -83,11 +84,23 @@ func Run(params Params) {
 		}
 	})
 	r.Use(middleware.StaticWithConfig(middleware.StaticConfig{
-		HTML5:      true,
-		Index:      "index.html",
-		Filesystem: http.FS(frontend.Content),
+		HTML5:      false,
+		Index:      "",
+		Filesystem: http.FS(web.Static),
 		Browse:     false,
 	}))
+
+	feedService := server.NewFeed(repo.NewFeed(repo.DB))
+	groupService := server.NewGroup(repo.NewGroup(repo.DB))
+	itemService := server.NewItem(repo.NewItem(repo.DB))
+
+	web.New(web.Params{
+		PasswordHash:    params.PasswordHash,
+		UseSecureCookie: params.UseSecureCookie,
+		ItemService:     itemService,
+		FeedService:     feedService,
+		GroupService:    groupService,
+	}).Register(r)
 
 	authed := r.Group("/api")
 
@@ -111,7 +124,7 @@ func Run(params Params) {
 	}
 
 	feeds := authed.Group("/feeds")
-	feedAPIHandler := newFeedAPI(server.NewFeed(repo.NewFeed(repo.DB)))
+	feedAPIHandler := newFeedAPI(feedService)
 	feeds.GET("", feedAPIHandler.List)
 	feeds.GET("/:id", feedAPIHandler.Get)
 	feeds.POST("", feedAPIHandler.Create)
@@ -121,14 +134,14 @@ func Run(params Params) {
 	feeds.POST("/refresh", feedAPIHandler.Refresh)
 
 	groups := authed.Group("/groups")
-	groupAPIHandler := newGroupAPI(server.NewGroup(repo.NewGroup(repo.DB)))
+	groupAPIHandler := newGroupAPI(groupService)
 	groups.GET("", groupAPIHandler.All)
 	groups.POST("", groupAPIHandler.Create)
 	groups.PATCH("/:id", groupAPIHandler.Update)
 	groups.DELETE("/:id", groupAPIHandler.Delete)
 
 	items := authed.Group("/items")
-	itemAPIHandler := newItemAPI(server.NewItem(repo.NewItem(repo.DB)))
+	itemAPIHandler := newItemAPI(itemService)
 	items.GET("", itemAPIHandler.List)
 	items.GET("/:id", itemAPIHandler.Get)
 	items.PATCH("/:id/bookmark", itemAPIHandler.UpdateBookmark)

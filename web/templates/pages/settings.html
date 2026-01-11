@@ -1,0 +1,52 @@
+{{ define "header" }}
+<header class="bg-base-100 border-neutral sticky top-0 z-50 border-b py-2">
+  <div class="flex flex-col justify-between px-1 md:px-4 lg:flex-row lg:items-center lg:px-8">
+    <div class="flex items-center justify-between gap-4">
+      <label for="sidebar-toggle" class="btn btn-ghost btn-square lg:hidden">Menu</label>
+      <span class="text-base-content/60 text-sm">Settings</span>
+    </div>
+  </div>
+</header>
+{{ end }}
+
+{{ define "content" }}
+<div class="px-4 lg:px-8">
+  <div class="py-6">
+    <h1 class="text-3xl font-bold">Settings</h1>
+  </div>
+  <div class="flex flex-col gap-6">
+    <section id="global-actions" class="rounded-box bg-base-200 p-4">
+      <h2 class="text-lg font-semibold">Global actions</h2>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <form method="post" action="/feeds/refresh">
+          <input type="hidden" name="all" value="true" />
+          <button type="submit" class="btn btn-wide">Refresh all feeds</button>
+        </form>
+        <a href="/feeds/export" class="btn btn-wide">Export feeds (OPML)</a>
+      </div>
+    </section>
+
+    <section id="groups" class="rounded-box bg-base-200 p-4">
+      <h2 class="text-lg font-semibold">Groups</h2>
+      <p class="text-base-content/60 text-sm">Manage feed groups.</p>
+      <div class="mt-4 flex flex-col space-y-4">
+        {{ range .Groups }}
+          <form method="post" action="/settings/groups/{{ .ID }}" class="flex flex-col items-center space-x-2 md:flex-row">
+            <input type="text" name="name" class="input w-full md:w-56" value="{{ .Name }}" />
+            <div class="flex gap-2">
+              <button type="submit" class="btn btn-ghost">Save</button>
+              {{ if ne .ID 1 }}
+                <button type="submit" formaction="/settings/groups/{{ .ID }}/delete" class="btn btn-ghost text-error">Delete</button>
+              {{ end }}
+            </div>
+          </form>
+        {{ end }}
+        <form method="post" action="/settings/groups" class="flex items-center space-x-2">
+          <input type="text" name="name" class="input w-full md:w-56" placeholder="New group" />
+          <button type="submit" class="btn btn-ghost">Add</button>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>
+{{ end }}

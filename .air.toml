@@ -1,0 +1,13 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o ./tmp/main ./cmd/server"
+  bin = "tmp/main"
+  include_ext = ["go", "html", "css", "js", "json", "svg", "png", "ico"]
+  include_dir = ["web", "web/static"]
+  exclude_dir = ["assets", "frontend", "tmp", "node_modules", "web/static/third-party"]
+  exclude_regex = ["_test.go"]
+
+[log]
+  time = true

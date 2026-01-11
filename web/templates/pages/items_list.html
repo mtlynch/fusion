@@ -1,0 +1,79 @@
+{{ define "header" }}
+<header class="bg-base-100 border-neutral sticky top-0 z-50 border-b py-2">
+  <div class="flex flex-wrap items-center gap-2 px-1 md:px-4 lg:px-8">
+    <div class="flex min-w-0 flex-1 items-center gap-4">
+      <label for="sidebar-toggle" class="btn btn-ghost btn-square lg:hidden">Menu</label>
+      {{ if .ShowSearch }}
+        <form method="get" action="/search" class="w-full max-w-md">
+          <label class="input input-sm lg:w-80 flex items-center gap-2">
+            <span class="text-xs">Search</span>
+            <input type="search" name="keyword" value="" placeholder="Search items" class="grow" />
+          </label>
+        </form>
+      {{ else }}
+        <span class="text-base-content/60 text-sm">{{ .HeaderTitle }}</span>
+      {{ end }}
+    </div>
+    <div class="ml-auto flex shrink-0 items-center gap-2">
+      {{ range .HeaderActions }}
+        {{ $label := .Label }}
+        {{ if eq .Method "post" }}
+          <form method="post" action="{{ .URL }}" class="flex">
+            {{ range .Fields }}
+              <input type="hidden" name="{{ .Name }}" value="{{ .Value }}" />
+            {{ end }}
+            <button
+              type="submit"
+              class="btn btn-ghost btn-sm btn-square"
+              title="{{ $label }}"
+              aria-label="{{ $label }}"
+            >
+              {{ if eq $label "Mark page read" }}
+                <i class="fa-solid fa-check" aria-hidden="true"></i>
+              {{ else if eq $label "Mark feed read" }}
+                <i class="fa-solid fa-check-double" aria-hidden="true"></i>
+              {{ else if eq $label "Refresh" }}
+                <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+              {{ else if eq $label "Mark read" }}
+                <i class="fa-solid fa-check" aria-hidden="true"></i>
+              {{ else if eq $label "Mark unread" }}
+                <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+              {{ else }}
+                <span class="text-xs">{{ $label }}</span>
+              {{ end }}
+            </button>
+          </form>
+        {{ else }}
+          <a
+            href="{{ .URL }}"
+            class="btn btn-ghost btn-sm btn-square"
+            title="{{ $label }}"
+            aria-label="{{ $label }}"
+          >
+            {{ if eq $label "Feed" }}
+              <i class="fa-solid fa-rss" aria-hidden="true"></i>
+            {{ else if eq $label "Bookmark" }}
+              <i class="fa-regular fa-bookmark" aria-hidden="true"></i>
+            {{ else if eq $label "Unbookmark" }}
+              <i class="fa-solid fa-bookmark" aria-hidden="true"></i>
+            {{ else if eq $label "Settings" }}
+              <i class="fa-solid fa-gear" aria-hidden="true"></i>
+            {{ else }}
+              <span class="text-xs">{{ $label }}</span>
+            {{ end }}
+          </a>
+        {{ end }}
+      {{ end }}
+    </div>
+  </div>
+</header>
+{{ end }}
+
+{{ define "content" }}
+<div class="px-4 lg:px-8">
+  <div class="py-6">
+    <h1 class="text-3xl font-bold">{{ .HeaderTitle }}</h1>
+  </div>
+  {{ template "item-list.html" .ItemList }}
+</div>
+{{ end }}

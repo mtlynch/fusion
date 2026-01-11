@@ -1,6 +1,6 @@
 package server
 
-// BizError is the error allowed to show on frontend user side
+// BizError is the error allowed to show on the client side.
 type BizError struct {
 	HTTPCode  uint
 	FEMessage string

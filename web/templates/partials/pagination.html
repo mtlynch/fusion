@@ -1,0 +1,33 @@
+{{ define "pagination.html" }}
+<div class="join">
+  <a
+    class="join-item btn"
+    href="{{ if .PrevURL }}{{ .PrevURL }}{{ else }}#{{ end }}"
+    {{ if .PrevURL }}hx-get="{{ .PrevURL }}" hx-target="#item-list" hx-swap="outerHTML"{{ end }}
+    aria-disabled="{{ if .PrevDisabled }}true{{ else }}false{{ end }}"
+  >
+    &laquo;
+  </a>
+  {{ range .Pages }}
+    {{ if .IsEllipsis }}
+      <span class="join-item btn" aria-disabled="true">...</span>
+    {{ else }}
+      <a
+        class="join-item btn {{ if .Active }}btn-active border-b-base-content/60 border-b-2{{ end }}"
+        href="{{ .URL }}"
+        {{ if .URL }}hx-get="{{ .URL }}" hx-target="#item-list" hx-swap="outerHTML"{{ end }}
+      >
+        {{ .Label }}
+      </a>
+    {{ end }}
+  {{ end }}
+  <a
+    class="join-item btn"
+    href="{{ if .NextURL }}{{ .NextURL }}{{ else }}#{{ end }}"
+    {{ if .NextURL }}hx-get="{{ .NextURL }}" hx-target="#item-list" hx-swap="outerHTML"{{ end }}
+    aria-disabled="{{ if .NextDisabled }}true{{ else }}false{{ end }}"
+  >
+    &raquo;
+  </a>
+</div>
+{{ end }}

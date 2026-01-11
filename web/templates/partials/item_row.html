@@ -1,0 +1,85 @@
+{{ define "item-row.html" }}
+<li id="item-{{ .ID }}" class="rounded-md">
+  <div
+    class="group hover:bg-base-200 relative flex w-full flex-col items-center justify-between space-y-1 space-x-2 rounded-md px-2 py-2 transition-colors focus:ring-2 md:flex-row"
+  >
+    <div class="flex w-full md:w-[80%] md:shrink-0">
+      <h2 class="line-clamp-2 w-full truncate font-medium md:line-clamp-1 {{ if .DimTitle }}text-base-content/60{{ end }}">
+        <a href="{{ .ItemURL }}" class="block">
+          {{ if .Title }}{{ .Title }}{{ else }}{{ .Link }}{{ end }}
+        </a>
+      </h2>
+    </div>
+    <div class="flex w-full md:grow">
+      <div class="text-base-content/60 flex w-full justify-between gap-2 text-xs font-normal group-hover:hidden group-focus:hidden">
+        <div class="flex grow items-center space-x-2 overflow-x-hidden">
+          <div class="avatar">
+            <div class="size-4 rounded-full">
+              <img src="{{ .FaviconURL }}" alt="{{ .FeedName }}" loading="lazy" />
+            </div>
+          </div>
+          <span class="line-clamp-1">{{ .FeedName }}</span>
+        </div>
+        <span class="w-[4ch] shrink-0 truncate text-right">{{ .TimeAgo }}</span>
+      </div>
+    </div>
+    <div class="invisible absolute right-1 w-fit justify-end gap-2 md:group-hover:visible md:group-hover:flex md:group-focus:visible md:group-focus:flex">
+      <form
+        method="post"
+        action="/items/{{ .ID }}/toggle-unread"
+        hx-post="/items/{{ .ID }}/toggle-unread"
+        hx-target="#item-{{ .ID }}"
+        hx-swap="outerHTML"
+      >
+        <input type="hidden" name="return" value="{{ .ReturnURL }}" />
+        <input type="hidden" name="highlight_unread" value="{{ if .HighlightUnread }}1{{ end }}" />
+        <button
+          type="submit"
+          class="btn btn-ghost btn-square"
+          title="{{ .UnreadLabel }}"
+          aria-label="{{ .UnreadLabel }}"
+        >
+          {{ if eq .UnreadLabel "Mark read" }}
+            <i class="fa-solid fa-check" aria-hidden="true"></i>
+          {{ else if eq .UnreadLabel "Mark unread" }}
+            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+          {{ else }}
+            <span class="text-xs">{{ .UnreadLabel }}</span>
+          {{ end }}
+        </button>
+      </form>
+      <form
+        method="post"
+        action="/items/{{ .ID }}/toggle-bookmark"
+        hx-post="/items/{{ .ID }}/toggle-bookmark"
+        hx-target="#item-{{ .ID }}"
+        hx-swap="outerHTML"
+      >
+        <input type="hidden" name="return" value="{{ .ReturnURL }}" />
+        <input type="hidden" name="highlight_unread" value="{{ if .HighlightUnread }}1{{ end }}" />
+        <button
+          type="submit"
+          class="btn btn-ghost btn-square"
+          title="{{ .BookmarkLabel }}"
+          aria-label="{{ .BookmarkLabel }}"
+        >
+          {{ if eq .BookmarkLabel "Unbookmark" }}
+            <i class="fa-solid fa-bookmark" aria-hidden="true"></i>
+          {{ else }}
+            <i class="fa-regular fa-bookmark" aria-hidden="true"></i>
+          {{ end }}
+        </button>
+      </form>
+      <a
+        href="{{ .Link }}"
+        target="_blank"
+        class="btn btn-ghost btn-square"
+        title="Visit"
+        aria-label="Visit"
+      >
+        <i class="fa-solid fa-up-right-from-square" aria-hidden="true"></i>
+      </a>
+    </div>
+  </div>
+</li>
+{{ end }}

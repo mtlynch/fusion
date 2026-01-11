@@ -1,0 +1,18 @@
+{{ define "content" }}
+<div class="mx-auto flex min-h-[calc(100dvh)] max-w-md flex-col justify-center px-4">
+  <h1 class="text-3xl font-bold">Fusion</h1>
+  <p class="text-base-content/60 mt-2">Sign in to continue</p>
+  {{ if .Error }}
+    <div role="alert" class="alert alert-error mt-4">
+      <span>{{ .Error }}</span>
+    </div>
+  {{ end }}
+  <form method="post" action="/login" class="mt-6 flex flex-col gap-4">
+    <label class="input input-bordered flex items-center gap-2">
+      <span class="text-sm">Password</span>
+      <input type="password" name="password" required class="grow" />
+    </label>
+    <button type="submit" class="btn btn-primary">Login</button>
+  </form>
+</div>
+{{ end }}
