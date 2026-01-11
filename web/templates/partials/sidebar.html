@@ -11,10 +11,10 @@
         <span class="text-lg font-bold">Fusion</span>
       </a>
       {{ if .ShowThemeToggle }}
-      <label class="btn btn-ghost btn-square swap swap-rotate hover:bg-neutral">
+      <label class="btn btn-ghost btn-square swap swap-rotate hover:bg-neutral" aria-label="Toggle theme">
         <input type="checkbox" class="theme-controller" value="dark" {{ if .ThemeIsDark }}checked{{ end }} />
-        <span class="swap-off text-xs">Light</span>
-        <span class="swap-on text-xs">Dark</span>
+        <i class="fa-solid fa-sun swap-off" aria-hidden="true"></i>
+        <i class="fa-solid fa-moon swap-on" aria-hidden="true"></i>
       </label>
       {{ end }}
     </div>

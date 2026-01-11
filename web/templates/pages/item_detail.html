@@ -1,13 +1,13 @@
 {{ define "header" }}
 <header class="bg-base-100 border-neutral sticky top-0 z-50 border-b py-2">
-  <div class="flex flex-col justify-between px-1 md:px-4 lg:flex-row lg:items-center lg:px-8">
-    <div class="flex items-center justify-between gap-4">
+  <div class="flex flex-wrap items-center gap-2 px-1 md:px-4 lg:px-8">
+    <div class="flex min-w-0 flex-1 items-center gap-4">
       <label for="sidebar-toggle" class="btn btn-ghost btn-square lg:hidden">Menu</label>
-      <span class="text-base-content/60 text-sm">
+      <span class="truncate text-base-content/60 text-sm">
         {{ if .Item.Title }}{{ .Item.Title }}{{ else }}{{ .Item.Link }}{{ end }}
       </span>
     </div>
-    <div class="ml-auto flex flex-wrap gap-2">
+    <div class="ml-auto flex shrink-0 items-center gap-2">
       <a
         href="/feeds/{{ .Item.Feed.ID }}"
         class="btn btn-ghost btn-square"
