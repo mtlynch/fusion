@@ -31,6 +31,12 @@ type Puller struct {
 	itemRepo ItemRepo
 }
 
+// FeedPullError captures a feed-specific pull error.
+type FeedPullError struct {
+	Feed *model.Feed
+	Err  error
+}
+
 // TODO: cache favicon
 
 func NewPuller(feedRepo FeedRepo, itemRepo ItemRepo) *Puller {
@@ -66,24 +72,10 @@ func (p *Puller) PullAll(ctx context.Context, force bool) error {
 		return nil
 	}
 
-	routinePool := make(chan struct{}, 10)
-	defer close(routinePool)
-	wg := sync.WaitGroup{}
-	for _, f := range feeds {
-		routinePool <- struct{}{}
-		wg.Add(1)
-		go func(f *model.Feed) {
-			defer func() {
-				wg.Done()
-				<-routinePool
-			}()
-
-			if err := p.do(ctx, f, force); err != nil {
-				slog.Error("failed to pull feed", "error", err, "feed_id", f.ID, "feed_link", ptr.From(f.Link))
-			}
-		}(f)
+	errs := PullFeeds(ctx, feeds, force, 10, p.do)
+	for _, pullErr := range errs {
+		slog.Error("failed to pull feed", "error", pullErr.Err, "feed_id", pullErr.Feed.ID, "feed_link", ptr.From(pullErr.Feed.Link))
 	}
-	wg.Wait()
 	return nil
 }
 
@@ -94,4 +86,43 @@ func (p *Puller) PullOne(ctx context.Context, id uint) error {
 	}
 
 	return p.do(ctx, f, true)
+}
+
+// PullFeeds pulls a batch of feeds concurrently and returns any per-feed errors.
+func PullFeeds(ctx context.Context, feeds []*model.Feed, force bool, maxWorkers int, pullFeed func(context.Context, *model.Feed, bool) error) []FeedPullError {
+	if maxWorkers <= 0 {
+		maxWorkers = 1
+	}
+
+	routinePool := make(chan struct{}, maxWorkers)
+	defer close(routinePool)
+
+	var (
+		wg   sync.WaitGroup
+		mu   sync.Mutex
+		errs []FeedPullError
+	)
+
+	for _, f := range feeds {
+		routinePool <- struct{}{}
+		wg.Add(1)
+		go func(f *model.Feed) {
+			defer func() {
+				wg.Done()
+				<-routinePool
+			}()
+
+			if err := pullFeed(ctx, f, force); err != nil {
+				mu.Lock()
+				errs = append(errs, FeedPullError{
+					Feed: f,
+					Err:  err,
+				})
+				mu.Unlock()
+			}
+		}(f)
+	}
+	wg.Wait()
+
+	return errs
 }
