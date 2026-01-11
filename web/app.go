@@ -1049,7 +1049,14 @@ func renderAuth(c echo.Context, page string, data interface{}) error {
 }
 
 func renderPartial(c echo.Context, file, name string, data interface{}) error {
-	tmpl, err := template.New(name).ParseFS(Templates, normalizeTemplatePath(file))
+	files := []string{normalizeTemplatePath(file)}
+	if name == "item-list.html" {
+		files = append(files,
+			normalizeTemplatePath("templates/partials/item_row.html"),
+			normalizeTemplatePath("templates/partials/pagination.html"),
+		)
+	}
+	tmpl, err := template.New(name).ParseFS(Templates, files...)
 	if err != nil {
 		return err
 	}
