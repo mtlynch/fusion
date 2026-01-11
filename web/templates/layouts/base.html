@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>{{ if .Title }}{{ .Title }}{{ else }}Fusion{{ end }}</title>
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="stylesheet" href="/css/app.css" />
+    <script src="/third-party/htmx@2.0.4/htmx.min.js"></script>
+    <script src="/third-party/htmx-ext-response-targets@2.0.0/response-targets.js"></script>
+    <script src="/js/htmx-ext/clear-before-send.js"></script>
+    <script src="/js/htmx-settings.js" type="module"></script>
+  </head>
+  <body class="bg-base-100 text-base-content">
+    <main class="drawer lg:drawer-open">
+      <input id="sidebar-toggle" type="checkbox" class="drawer-toggle" />
+      <div class="drawer-content bg-base-100 relative z-10 min-h-screen overflow-x-clip">
+        <div class="mx-auto flex h-full max-w-6xl flex-col pb-4">
+          {{ block "header" . }}{{ end }}
+          {{ if .Flash }}
+            <div class="px-4 lg:px-8">
+              <div role="status" class="alert alert-info mt-4">
+                <span>{{ .Flash }}</span>
+              </div>
+            </div>
+          {{ end }}
+          {{ block "content" . }}{{ end }}
+        </div>
+      </div>
+      <div class="drawer-side z-10">
+        <label for="sidebar-toggle" aria-label="close sidebar" class="drawer-overlay"></label>
+        <div
+          class="text-base-content bg-base-200 z-50 h-full min-h-full w-[80%] overflow-x-hidden px-2 py-4 lg:w-72"
+        >
+          {{ template "sidebar.html" .Sidebar }}
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,57 @@
+{{ define "header" }}
+<header class="bg-base-100 border-neutral sticky top-0 z-50 border-b py-2">
+  <div class="flex flex-col justify-between px-1 md:px-4 lg:flex-row lg:items-center lg:px-8">
+    <div class="flex items-center justify-between gap-4">
+      <label for="sidebar-toggle" class="btn btn-ghost btn-square lg:hidden">Menu</label>
+      <span class="text-base-content/60 text-sm">Feed settings</span>
+    </div>
+  </div>
+</header>
+{{ end }}
+
+{{ define "content" }}
+<div class="px-4 lg:px-8">
+  <div class="py-6">
+    <h1 class="text-3xl font-bold">Feed settings</h1>
+  </div>
+  {{ if .Error }}
+    <div role="alert" class="alert alert-error mb-4">
+      <span>{{ .Error }}</span>
+    </div>
+  {{ end }}
+  <form method="post" action="/feeds/{{ .Feed.ID }}/settings" class="rounded-box bg-base-200 p-4">
+    <label class="fieldset">
+      <span class="fieldset-legend">Name</span>
+      <input type="text" name="name" class="input w-full" value="{{ .Feed.Name }}" required />
+    </label>
+    <label class="fieldset">
+      <span class="fieldset-legend">Link</span>
+      <input type="url" name="link" class="input w-full" value="{{ .Feed.Link }}" required />
+    </label>
+    <label class="fieldset">
+      <span class="fieldset-legend">Group</span>
+      <select name="group_id" class="select w-full" required>
+        {{ range .Groups }}
+          <option value="{{ .ID }}" {{ if eq $.Feed.GroupID .ID }}selected{{ end }}>{{ .Name }}</option>
+        {{ end }}
+      </select>
+    </label>
+    <details class="mt-2">
+      <summary>Advanced</summary>
+      <label class="fieldset">
+        <span class="fieldset-legend">Proxy</span>
+        <input type="text" name="req_proxy" class="input w-full" value="{{ .Feed.ReqProxy }}" />
+      </label>
+      <label class="fieldset">
+        <span class="fieldset-legend">Suspend fetching</span>
+        <input type="checkbox" name="suspended" value="true" {{ if .Feed.Suspended }}checked{{ end }} />
+      </label>
+    </details>
+    <div class="mt-4 flex gap-2">
+      <button type="submit" class="btn btn-primary">Save</button>
+      <a href="/feeds/{{ .Feed.ID }}" class="btn btn-ghost">Back</a>
+      <button type="submit" formaction="/feeds/{{ .Feed.ID }}/delete" class="btn btn-ghost text-error">Delete</button>
+    </div>
+  </form>
+</div>
+{{ end }}

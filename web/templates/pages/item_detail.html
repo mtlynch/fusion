@@ -1,0 +1,54 @@
+{{ define "header" }}
+<header class="bg-base-100 border-neutral sticky top-0 z-50 border-b py-2">
+  <div class="flex flex-col justify-between px-1 md:px-4 lg:flex-row lg:items-center lg:px-8">
+    <div class="flex items-center justify-between gap-4">
+      <label for="sidebar-toggle" class="btn btn-ghost btn-square lg:hidden">Menu</label>
+      <span class="text-base-content/60 text-sm">Item</span>
+    </div>
+    <div class="ml-auto flex flex-wrap gap-2">
+      <a href="/feeds/{{ .Item.Feed.ID }}" class="btn btn-ghost btn-square">Feed</a>
+      <form method="post" action="/items/{{ .Item.ID }}/toggle-unread">
+        <input type="hidden" name="return" value="{{ .ReturnURL }}" />
+        <button type="submit" class="btn btn-ghost btn-square">{{ .UnreadLabel }}</button>
+      </form>
+      <form method="post" action="/items/{{ .Item.ID }}/toggle-bookmark">
+        <input type="hidden" name="return" value="{{ .ReturnURL }}" />
+        <button type="submit" class="btn btn-ghost btn-square">{{ .BookmarkLabel }}</button>
+      </form>
+      <a href="{{ .Item.Link }}" target="_blank" class="btn btn-ghost btn-square">Visit</a>
+    </div>
+  </div>
+</header>
+{{ end }}
+
+{{ define "content" }}
+<div class="relative flex w-full grow justify-around px-4 py-6">
+  <div class="w-full max-w-prose">
+    <div class="space-y-2 pb-8">
+      <h1 class="text-4xl font-bold">
+        <a href="{{ .Item.Link }}" target="_blank" class="inline-flex items-center gap-2 no-underline hover:underline">
+          <span>{{ if .Item.Title }}{{ .Item.Title }}{{ else }}{{ .Item.Link }}{{ end }}</span>
+        </a>
+      </h1>
+      <a href="/feeds/{{ .Item.Feed.ID }}" class="text-base-content/60 text-sm hover:underline">
+        {{ .Item.Feed.Name }} | {{ .PublishedAt }}
+      </a>
+    </div>
+    <div class="prose text-wrap break-words">
+      {{ .ContentHTML }}
+    </div>
+    {{ if or .PrevItemURL .NextItemURL }}
+      <div class="mt-8 flex justify-between">
+        {{ if .PrevItemURL }}
+          <a href="{{ .PrevItemURL }}" class="btn">Previous</a>
+        {{ else }}
+          <span></span>
+        {{ end }}
+        {{ if .NextItemURL }}
+          <a href="{{ .NextItemURL }}" class="btn">Next</a>
+        {{ end }}
+      </div>
+    {{ end }}
+  </div>
+</div>
+{{ end }}

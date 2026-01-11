@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>{{ if .Title }}{{ .Title }}{{ else }}Fusion{{ end }}</title>
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="stylesheet" href="/css/app.css" />
+  </head>
+  <body class="bg-base-100 text-base-content">
+    <main class="min-h-[calc(100dvh)]">
+      {{ block "content" . }}{{ end }}
+    </main>
+  </body>
+</html>

@@ -1,0 +1,42 @@
+{{ define "header" }}
+<header class="bg-base-100 border-neutral sticky top-0 z-50 border-b py-2">
+  <div class="flex flex-col justify-between px-1 md:px-4 lg:flex-row lg:items-center lg:px-8">
+    <div class="flex items-center justify-between gap-4">
+      <label for="sidebar-toggle" class="btn btn-ghost btn-square lg:hidden">Menu</label>
+      {{ if .ShowSearch }}
+        <form method="get" action="/search" class="w-full max-w-md">
+          <label class="input input-sm lg:w-80 flex items-center gap-2">
+            <span class="text-xs">Search</span>
+            <input type="search" name="keyword" value="" placeholder="Search items" class="grow" />
+          </label>
+        </form>
+      {{ else }}
+        <span class="text-base-content/60 text-sm">{{ .HeaderTitle }}</span>
+      {{ end }}
+    </div>
+    <div class="ml-auto flex flex-wrap gap-2">
+      {{ range .HeaderActions }}
+        {{ if eq .Method "post" }}
+          <form method="post" action="{{ .URL }}">
+            {{ range .Fields }}
+              <input type="hidden" name="{{ .Name }}" value="{{ .Value }}" />
+            {{ end }}
+            <button type="submit" class="btn btn-ghost">{{ .Label }}</button>
+          </form>
+        {{ else }}
+          <a href="{{ .URL }}" class="btn btn-ghost">{{ .Label }}</a>
+        {{ end }}
+      {{ end }}
+    </div>
+  </div>
+</header>
+{{ end }}
+
+{{ define "content" }}
+<div class="px-4 lg:px-8">
+  <div class="py-6">
+    <h1 class="text-3xl font-bold">{{ .HeaderTitle }}</h1>
+  </div>
+  {{ template "item-list.html" .ItemList }}
+</div>
+{{ end }}

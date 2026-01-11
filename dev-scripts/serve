@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export GOCACHE="${GOCACHE:-/tmp/go-cache}"
+
+go run \
+  -ldflags '-extldflags "-static"' \
+  ./cmd/server

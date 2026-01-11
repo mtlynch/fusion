@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export GOCACHE="${GOCACHE:-/tmp/go-cache}"
+
+"$(dirname "$0")/test"
+"$(dirname "$0")/build-backend" "$@"
