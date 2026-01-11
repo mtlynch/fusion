@@ -6,7 +6,7 @@ metadata:
   name: Fusion RSS
 spec:
   description: A lightweight RSS feed aggregator and reader
-  icon: https://raw.githubusercontent.com/0x2E/fusion/refs/heads/main/frontend/static/icon-512.png
+  icon: https://raw.githubusercontent.com/0x2E/fusion/refs/heads/main/web/static/icon-512.png
   coverImage: https://raw.githubusercontent.com/0x2E/fusion/refs/heads/main/assets/screenshot-light.png
   tags:
     - Tool
@@ -33,7 +33,7 @@ spec:
       description: What is the domain you want?
   services:
     - name: Fusion
-      icon: https://raw.githubusercontent.com/0x2E/fusion/refs/heads/main/frontend/static/icon-512.png
+      icon: https://raw.githubusercontent.com/0x2E/fusion/refs/heads/main/web/static/icon-512.png
       template: PREBUILT
       domainKey: PUBLIC_DOMAIN
       spec:

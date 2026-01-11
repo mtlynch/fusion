@@ -53,17 +53,18 @@ func Run(params Params) {
 	r.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogStatus:   true,
 		LogURI:      true,
+		LogMethod:   true,
 		LogError:    true,
 		HandleError: true, // forwards error to the global error handler, so it can decide appropriate status code
 		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
-			if !strings.HasPrefix(v.URI, "/api") {
+			if v.Status < http.StatusBadRequest {
 				return nil
 			}
 			if v.Error == nil {
-				slog.Info("REQUEST", "uri", v.URI, "status", v.Status)
-			} else {
-				slog.Error(v.Error.Error(), "uri", v.URI, "status", v.Status)
+				slog.Info("REQUEST_FAILED", "method", v.Method, "uri", v.URI, "status", v.Status)
+				return nil
 			}
+			slog.Error(v.Error.Error(), "method", v.Method, "uri", v.URI, "status", v.Status)
 			return nil
 		},
 	}))
