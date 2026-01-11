@@ -33,8 +33,19 @@
       >
         <input type="hidden" name="return" value="{{ .ReturnURL }}" />
         <input type="hidden" name="highlight_unread" value="{{ if .HighlightUnread }}1{{ end }}" />
-        <button type="submit" class="btn btn-ghost btn-square" aria-label="{{ .UnreadLabel }}">
-          {{ .UnreadLabel }}
+        <button
+          type="submit"
+          class="btn btn-ghost btn-square"
+          title="{{ .UnreadLabel }}"
+          aria-label="{{ .UnreadLabel }}"
+        >
+          {{ if eq .UnreadLabel "Mark read" }}
+            <i class="fa-solid fa-check" aria-hidden="true"></i>
+          {{ else if eq .UnreadLabel "Mark unread" }}
+            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+          {{ else }}
+            <span class="text-xs">{{ .UnreadLabel }}</span>
+          {{ end }}
         </button>
       </form>
       <form
@@ -46,17 +57,27 @@
       >
         <input type="hidden" name="return" value="{{ .ReturnURL }}" />
         <input type="hidden" name="highlight_unread" value="{{ if .HighlightUnread }}1{{ end }}" />
-        <button type="submit" class="btn btn-ghost btn-square" aria-label="{{ .BookmarkLabel }}">
-          {{ .BookmarkLabel }}
+        <button
+          type="submit"
+          class="btn btn-ghost btn-square"
+          title="{{ .BookmarkLabel }}"
+          aria-label="{{ .BookmarkLabel }}"
+        >
+          {{ if eq .BookmarkLabel "Unbookmark" }}
+            <i class="fa-solid fa-bookmark" aria-hidden="true"></i>
+          {{ else }}
+            <i class="fa-regular fa-bookmark" aria-hidden="true"></i>
+          {{ end }}
         </button>
       </form>
       <a
         href="{{ .Link }}"
         target="_blank"
         class="btn btn-ghost btn-square"
-        aria-label="Visit link"
+        title="Visit"
+        aria-label="Visit"
       >
-        Visit
+        <i class="fa-solid fa-up-right-from-square" aria-hidden="true"></i>
       </a>
     </div>
   </div>

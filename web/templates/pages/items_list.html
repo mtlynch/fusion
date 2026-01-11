@@ -14,17 +14,54 @@
         <span class="text-base-content/60 text-sm">{{ .HeaderTitle }}</span>
       {{ end }}
     </div>
-    <div class="ml-auto flex flex-wrap gap-2">
+    <div class="flex w-full flex-wrap items-center justify-start gap-2 lg:ml-auto lg:w-auto lg:justify-end">
       {{ range .HeaderActions }}
+        {{ $label := .Label }}
         {{ if eq .Method "post" }}
-          <form method="post" action="{{ .URL }}">
+          <form method="post" action="{{ .URL }}" class="flex">
             {{ range .Fields }}
               <input type="hidden" name="{{ .Name }}" value="{{ .Value }}" />
             {{ end }}
-            <button type="submit" class="btn btn-ghost">{{ .Label }}</button>
+            <button
+              type="submit"
+              class="btn btn-ghost btn-sm btn-square"
+              title="{{ $label }}"
+              aria-label="{{ $label }}"
+            >
+              {{ if eq $label "Mark page read" }}
+                <i class="fa-solid fa-check" aria-hidden="true"></i>
+              {{ else if eq $label "Mark feed read" }}
+                <i class="fa-solid fa-check-double" aria-hidden="true"></i>
+              {{ else if eq $label "Refresh" }}
+                <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+              {{ else if eq $label "Mark read" }}
+                <i class="fa-solid fa-check" aria-hidden="true"></i>
+              {{ else if eq $label "Mark unread" }}
+                <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+              {{ else }}
+                <span class="text-xs">{{ $label }}</span>
+              {{ end }}
+            </button>
           </form>
         {{ else }}
-          <a href="{{ .URL }}" class="btn btn-ghost">{{ .Label }}</a>
+          <a
+            href="{{ .URL }}"
+            class="btn btn-ghost btn-sm btn-square"
+            title="{{ $label }}"
+            aria-label="{{ $label }}"
+          >
+            {{ if eq $label "Feed" }}
+              <i class="fa-solid fa-rss" aria-hidden="true"></i>
+            {{ else if eq $label "Bookmark" }}
+              <i class="fa-regular fa-bookmark" aria-hidden="true"></i>
+            {{ else if eq $label "Unbookmark" }}
+              <i class="fa-solid fa-bookmark" aria-hidden="true"></i>
+            {{ else if eq $label "Settings" }}
+              <i class="fa-solid fa-gear" aria-hidden="true"></i>
+            {{ else }}
+              <span class="text-xs">{{ $label }}</span>
+            {{ end }}
+          </a>
         {{ end }}
       {{ end }}
     </div>

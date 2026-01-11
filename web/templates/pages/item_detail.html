@@ -3,19 +3,60 @@
   <div class="flex flex-col justify-between px-1 md:px-4 lg:flex-row lg:items-center lg:px-8">
     <div class="flex items-center justify-between gap-4">
       <label for="sidebar-toggle" class="btn btn-ghost btn-square lg:hidden">Menu</label>
-      <span class="text-base-content/60 text-sm">Item</span>
+      <span class="text-base-content/60 text-sm">
+        {{ if .Item.Title }}{{ .Item.Title }}{{ else }}{{ .Item.Link }}{{ end }}
+      </span>
     </div>
     <div class="ml-auto flex flex-wrap gap-2">
-      <a href="/feeds/{{ .Item.Feed.ID }}" class="btn btn-ghost btn-square">Feed</a>
+      <a
+        href="/feeds/{{ .Item.Feed.ID }}"
+        class="btn btn-ghost btn-square"
+        title="Feed"
+        aria-label="Feed"
+      >
+        <i class="fa-solid fa-rss" aria-hidden="true"></i>
+      </a>
       <form method="post" action="/items/{{ .Item.ID }}/toggle-unread">
         <input type="hidden" name="return" value="{{ .ReturnURL }}" />
-        <button type="submit" class="btn btn-ghost btn-square">{{ .UnreadLabel }}</button>
+        <button
+          type="submit"
+          class="btn btn-ghost btn-square"
+          title="{{ .UnreadLabel }}"
+          aria-label="{{ .UnreadLabel }}"
+        >
+          {{ if eq .UnreadLabel "Mark read" }}
+            <i class="fa-solid fa-check" aria-hidden="true"></i>
+          {{ else if eq .UnreadLabel "Mark unread" }}
+            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+          {{ else }}
+            <span class="text-xs">{{ .UnreadLabel }}</span>
+          {{ end }}
+        </button>
       </form>
       <form method="post" action="/items/{{ .Item.ID }}/toggle-bookmark">
         <input type="hidden" name="return" value="{{ .ReturnURL }}" />
-        <button type="submit" class="btn btn-ghost btn-square">{{ .BookmarkLabel }}</button>
+        <button
+          type="submit"
+          class="btn btn-ghost btn-square"
+          title="{{ .BookmarkLabel }}"
+          aria-label="{{ .BookmarkLabel }}"
+        >
+          {{ if eq .BookmarkLabel "Unbookmark" }}
+            <i class="fa-solid fa-bookmark" aria-hidden="true"></i>
+          {{ else }}
+            <i class="fa-regular fa-bookmark" aria-hidden="true"></i>
+          {{ end }}
+        </button>
       </form>
-      <a href="{{ .Item.Link }}" target="_blank" class="btn btn-ghost btn-square">Visit</a>
+      <a
+        href="{{ .Item.Link }}"
+        target="_blank"
+        class="btn btn-ghost btn-square"
+        title="Visit"
+        aria-label="Visit"
+      >
+        <i class="fa-solid fa-up-right-from-square" aria-hidden="true"></i>
+      </a>
     </div>
   </div>
 </header>
